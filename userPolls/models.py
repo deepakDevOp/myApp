@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractUser
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
-    password = models.CharField(max_length=20, unique=False, blank=False)
+    password = models.CharField(max_length=150, unique=False, blank=False)
     first_name = models.CharField(max_length=30, blank=False)
     last_name = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=False)
@@ -18,7 +18,5 @@ class CustomUser(AbstractUser):
     gender = models.CharField(max_length=10, blank=False)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-    # is_staff = models.BooleanField(default=False)
     marital_status = models.CharField(max_length=20, blank=True)
 

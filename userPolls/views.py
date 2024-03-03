@@ -1,5 +1,3 @@
-import logging
-from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from userPolls.models import CustomUser
 from django.utils import timezone
@@ -11,32 +9,25 @@ from django.http import JsonResponse
 from userPolls.serializer import CustomUserSerializer
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.contrib.auth.hashers import make_password
 
 
-@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def signup(request):
     if request.method == 'POST':
-        # Check Content-Type header
-        if 'application/json' not in request.content_type:
-            return JsonResponse({'message': 'Invalid Content-Type'}, status=400)
-        # Parse JSON data
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-            email = data.get('email')
-        except json.JSONDecodeError:
-            return JsonResponse({'message': 'Invalid JSON data'}, status=400)
-
-        if not username or not password or not email:
-            return JsonResponse({'message': 'Username, email, and password are required'}, status=400)
-
-        if CustomUser.objects.filter(username=username).exists():
-            return JsonResponse({'message': 'Username already exists'}, status=400)
-
-        user = CustomUser.objects.create_user(username=username, password=password, email=email)
-
-        return JsonResponse({'message': 'Signup successful'}, status=201)
+        data = request.data
+        # Hash the password
+        hashed_password = make_password(data.get("password"), salt='your_fixed_salt_value')
+        data["password"] = hashed_password
+        serializer = CustomUserSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'User created successfully',
+                             'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     else:
         return JsonResponse({'message': 'Method not allowed'}, status=405)
 
@@ -44,23 +35,18 @@ def signup(request):
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
-        # Check Content-Type header
-        if 'application/json' not in request.content_type:
-            return Response({'message': 'Username, email, and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        # Parse JSON data
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+
+        # Authenticate user
         try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-        except json.JSONDecodeError:
-            return JsonResponse({'message': 'Invalid JSON data'}, status=400)
-
-        if not username or not password:
-            return JsonResponse({'message': 'Username and password are required'}, status=400)
-
-        user = authenticate(username=username, password=password)
-
-        if user is not None:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'message': 'Invalid username'}, status=401)
+        hashed_password = make_password(password, salt='your_fixed_salt_value')
+        if user.password == hashed_password:
             # Generate OAuth token
             expires = timezone.now() + timedelta(hours=48)
             token = generate_token()
@@ -71,24 +57,30 @@ def login(request):
                 scope='read write',  # Customize scopes as needed
                 application=None  # Assuming this is a confidential client
             )
-            serializer = CustomUserSerializer(user, context={'access_token': access_token.token})
+            # Serialize user data
+            serializer = CustomUserSerializer(user)
+            # Return JSON response with user data and access token
             return JsonResponse({
                 'message': 'Login Successful.',
-                'data': serializer.data
+                'user': serializer.data,
+                'access_token': access_token.token
             })
         else:
-            return JsonResponse({'message': 'Invalid username or password'}, status=401)
+            # Return JSON response for authentication failure
+            return JsonResponse({'message': 'Invalid password'}, status=401)
     else:
+        # Return JSON response for unsupported method
         return JsonResponse({'message': 'Method not allowed'}, status=405)
 
 
 @csrf_exempt
 def delete_user(request):
     if request.method == 'DELETE':
-        username = request.GET.get('username')
-        print(username)
-        if not username:
-            return JsonResponse({'message': 'Username is required'}, status=400)
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+        except json.JSONDecodeError:
+            return JsonResponse({'message': 'Invalid JSON data'}, status=400)
 
         try:
             user = CustomUser.objects.get(username=username)
