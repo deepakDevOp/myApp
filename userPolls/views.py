@@ -14,19 +14,45 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import make_password
 
 
+def generate_oauth_token_save_in_db(user):
+    # function to generate oauth token for the user on first time signup
+    expires = timezone.now() + timedelta(hours=48)
+    token = generate_token()
+    access_token = AccessToken.objects.create(
+        user=user,
+        token=token,
+        expires=expires,
+        scope='read write',  # Customize scopes as needed
+        application=None  # Assuming this is a confidential client
+    )
+    return access_token
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
     if request.method == 'POST':
-        data = request.data
+        user_data = request.data
+        mobile_number = user_data["phone_number"]
+        # check if phone number is appropriate
+        if len(mobile_number) != 10:
+            return Response({'error message': 'Phone number should be of 10digits.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        elif not all(char.isdigit() for char in mobile_number):
+            return Response({'error message': 'Phone number should contain digits only.'},
+                            status=status.HTTP_400_BAD_REQUEST)
         # Hash the password
-        hashed_password = make_password(data.get("password"), salt='your_fixed_salt_value')
-        data["password"] = hashed_password
-        serializer = CustomUserSerializer(data=data)
+        hashed_password = make_password(user_data.get("password"), salt='your_fixed_salt_value')
+        # updating user_data with hashed password
+        user_data["password"] = hashed_password
+        serializer = CustomUserSerializer(data=user_data)
         if serializer.is_valid():
             serializer.save()
+            user = CustomUser.objects.get(username=user_data["username"])
+            access_token = generate_oauth_token_save_in_db(user)
             return Response({'message': 'User created successfully',
-                             'data': serializer.data}, status=status.HTTP_201_CREATED)
+                             'data': serializer.data,
+                             'access_token': access_token.token}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     else:
         return JsonResponse({'message': 'Method not allowed'}, status=405)
@@ -48,15 +74,7 @@ def login(request):
         hashed_password = make_password(password, salt='your_fixed_salt_value')
         if user.password == hashed_password:
             # Generate OAuth token
-            expires = timezone.now() + timedelta(hours=48)
-            token = generate_token()
-            access_token = AccessToken.objects.create(
-                user=user,
-                token=token,
-                expires=expires,
-                scope='read write',  # Customize scopes as needed
-                application=None  # Assuming this is a confidential client
-            )
+            access_token = generate_oauth_token_save_in_db(user)
             # Serialize user data
             serializer = CustomUserSerializer(user)
             # Return JSON response with user data and access token
