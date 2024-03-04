@@ -3,6 +3,9 @@ from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
+    class Meta:
+        db_table = 'userPolls_customuser'
+
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=150, unique=False, blank=False)
@@ -19,4 +22,9 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Hash the password before saving
+        self.set_password(self.password)
+        super().save(*args, **kwargs)
 

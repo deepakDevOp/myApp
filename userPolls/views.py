@@ -1,17 +1,14 @@
-from django.views.decorators.csrf import csrf_exempt
-from userPolls.models import CustomUser
-from django.utils import timezone
-from oauth2_provider.models import AccessToken
 from datetime import timedelta
-from oauthlib.common import generate_token
-import json
 from django.http import JsonResponse
-from userPolls.serializer import CustomUserSerializer
+from oauthlib.common import generate_token
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from django.contrib.auth.hashers import make_password
+from .serializer import *
+from oauth2_provider.models import AccessToken
+from django.utils import timezone
+from .models import CustomUser
 
 
 def generate_oauth_token_save_in_db(user):
@@ -28,91 +25,52 @@ def generate_oauth_token_save_in_db(user):
     return access_token
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def signup(request):
-    if request.method == 'POST':
-        user_data = request.data
-        mobile_number = user_data["phone_number"]
-        # check if phone number is appropriate
-        if len(mobile_number) != 10:
-            return Response({'error message': 'Phone number should be of 10digits.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        elif not all(char.isdigit() for char in mobile_number):
-            return Response({'error message': 'Phone number should contain digits only.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        # Hash the password
-        hashed_password = make_password(user_data.get("password"), salt='your_fixed_salt_value')
-        # updating user_data with hashed password
-        user_data["password"] = hashed_password
-        serializer = CustomUserSerializer(data=user_data)
+class SignupAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        data = request.data
+        serializer = SignupSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            user = CustomUser.objects.get(username=user_data["username"])
+            user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
-            return Response({'message': 'User created successfully',
-                             'data': serializer.data,
-                             'access_token': access_token.token}, status=status.HTTP_201_CREATED)
+            return Response({'message': 'Signup Successful',
+                             'data': CustomUserSerializer(user).data,
+                             'access_token': access_token.token},
+                            status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return JsonResponse({'message': 'Method not allowed'}, status=405)
 
 
-@csrf_exempt
-def login(request):
-    if request.method == 'POST':
-        # Parse JSON data from request body
-        data = json.loads(request.body)
-        username = data.get('username')
-        password = data.get('password')
+class LoginAPIView(APIView):
+    permission_classes = [AllowAny]
 
-        # Authenticate user
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return JsonResponse({'message': 'Invalid username'}, status=401)
-        hashed_password = make_password(password, salt='your_fixed_salt_value')
-        if user.password == hashed_password:
-            # Generate OAuth token
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer_data = serializer.validated_data
+            user = CustomUser.objects.get(username=serializer_data)
             access_token = generate_oauth_token_save_in_db(user)
-            # Serialize user data
-            serializer = CustomUserSerializer(user)
-            # Return JSON response with user data and access token
-            return JsonResponse({
-                'message': 'Login Successful.',
-                'user': serializer.data,
-                'access_token': access_token.token
-            })
-        else:
-            # Return JSON response for authentication failure
-            return JsonResponse({'message': 'Invalid password'}, status=401)
-    else:
-        # Return JSON response for unsupported method
-        return JsonResponse({'message': 'Method not allowed'}, status=405)
+            return Response({'message': 'Login Successful',
+                             'data': CustomUserSerializer(user).data,
+                             'access_token': access_token.token}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@csrf_exempt
-def delete_user(request):
-    if request.method == 'DELETE':
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-        except json.JSONDecodeError:
-            return JsonResponse({'message': 'Invalid JSON data'}, status=400)
+class DeleteUserAPIView(APIView):
+    permission_classes = [AllowAny]
 
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return JsonResponse({'message': 'User not found'}, status=404)
-
-        user_id = user.id
-        if AccessToken.objects.filter(user_id=user_id).exists():
-            # Delete all access tokens associated with the user
-            AccessToken.objects.filter(user_id=user_id).delete()
-
-        # Delete the user
-        user.delete()
-
-        return JsonResponse({'message': 'User deleted successfully'}, status=200)
-    else:
-        return JsonResponse({'message': 'Method not allowed'}, status=405)
+    def delete(self, request):
+        serializer = DeleteUserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer_data = serializer.validated_data
+            print(serializer_data)
+            user = CustomUser.objects.get(username=serializer_data.get("username"))
+            user_id = user.id
+            if AccessToken.objects.filter(user_id=user_id).exists():
+                # Delete all access tokens associated with the user
+                AccessToken.objects.filter(user_id=user_id).delete()
+            # Delete the user
+            user.delete()
+            return JsonResponse({'message': 'User deleted successfully'}, status=200)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
