@@ -1,8 +1,17 @@
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from .models import *
+
+
+def authenticate_user(username, password):
+    UserModel = get_user_model()
+    user = UserModel.objects.get(username=username)
+    hashed_password = make_password(password, salt="my_known_salt")
+    if hashed_password == user.password:
+        return user
+    return None
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -45,15 +54,15 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         username = data.get('username')
         password = data.get('password')
-        user = authenticate(username=username, password=password)
+        user = authenticate_user(username, password)
         if user:
             return user
-        raise serializers.ValidationError("Incorrect username or password")
+        raise serializers.ValidationError("Incorrect username/password")
 
 
 class DeleteUserSerializer(serializers.Serializer):
     username = serializers.CharField()
-    # password = serializers.CharField()
+    password = serializers.CharField()
 
     def validate_username(self, data):
         try:
@@ -62,13 +71,13 @@ class DeleteUserSerializer(serializers.Serializer):
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError(f'User - {data} does not exist.')
 
-    # def validate(self, data):
-    #     username = data.get('username')
-    #     password = data.get('password')
-    #     user = authenticate(username=username, password=password)
-    #     if user:
-    #         return user
-    #     raise serializers.ValidationError("Incorrect username/password")
+    def validate(self, data):
+        username = data.get('username')
+        password = data.get('password')
+        user = authenticate_user(username, password)
+        if user:
+            return user
+        raise serializers.ValidationError("Incorrect username/password")
 
 
 
