@@ -9,6 +9,8 @@ from .serializer import *
 from oauth2_provider.models import AccessToken
 from django.utils import timezone
 from .models import CustomUser
+from django.contrib.auth import get_user_model
+
 
 
 def generate_oauth_token_save_in_db(user):
@@ -32,6 +34,7 @@ class SignupAPIView(APIView):
         data = request.data
         serializer = SignupSerializer(data=data)
         if serializer.is_valid():
+            serializer.validated_data["password"] = make_password(data["password"], salt="my_known_salt")
             serializer.save()
             user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
@@ -63,14 +66,11 @@ class DeleteUserAPIView(APIView):
     def delete(self, request):
         serializer = DeleteUserSerializer(data=request.data)
         if serializer.is_valid():
-            serializer_data = serializer.validated_data
-            print(serializer_data)
-            user = CustomUser.objects.get(username=serializer_data.get("username"))
-            user_id = user.id
-            if AccessToken.objects.filter(user_id=user_id).exists():
-                # Delete all access tokens associated with the user
-                AccessToken.objects.filter(user_id=user_id).delete()
+            user = CustomUser.objects.get(username=serializer.validated_data)
+            # Delete all access tokens associated with the user
+            AccessToken.objects.filter(user_id=user.id).delete()
             # Delete the user
             user.delete()
-            return JsonResponse({'message': 'User deleted successfully'}, status=200)
+            return JsonResponse({'message': 'User deleted successfully'},
+                                status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

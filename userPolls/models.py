@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import (
+    check_password, is_password_usable, make_password,
+)
 
 
 class CustomUser(AbstractUser):
@@ -7,7 +10,6 @@ class CustomUser(AbstractUser):
         db_table = 'userPolls_customuser'
 
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=150, unique=False, blank=False)
     first_name = models.CharField(max_length=30, blank=False)
     last_name = models.CharField(max_length=30, blank=True)
@@ -22,9 +24,4 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
-
-    def save(self, *args, **kwargs):
-        # Hash the password before saving
-        self.set_password(self.password)
-        super().save(*args, **kwargs)
-
+    is_active = models.BooleanField(default=False)
