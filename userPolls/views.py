@@ -64,12 +64,9 @@ class DeleteUserAPIView(APIView):
         serializer = DeleteUserSerializer(data=request.data)
         if serializer.is_valid():
             serializer_data = serializer.validated_data
-            print(serializer_data)
-            user = CustomUser.objects.get(username=serializer_data.get("username"))
-            user_id = user.id
-            if AccessToken.objects.filter(user_id=user_id).exists():
-                # Delete all access tokens associated with the user
-                AccessToken.objects.filter(user_id=user_id).delete()
+            user = CustomUser.objects.get(username=serializer_data)
+            # Delete all access tokens associated with the user
+            AccessToken.objects.filter(user_id=user.id).delete()
             # Delete the user
             user.delete()
             return JsonResponse({'message': 'User deleted successfully'}, status=200)

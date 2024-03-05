@@ -53,7 +53,7 @@ class LoginSerializer(serializers.Serializer):
 
 class DeleteUserSerializer(serializers.Serializer):
     username = serializers.CharField()
-    # password = serializers.CharField()
+    password = serializers.CharField()
 
     def validate_username(self, data):
         try:
@@ -62,13 +62,13 @@ class DeleteUserSerializer(serializers.Serializer):
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError(f'User - {data} does not exist.')
 
-    # def validate(self, data):
-    #     username = data.get('username')
-    #     password = data.get('password')
-    #     user = authenticate(username=username, password=password)
-    #     if user:
-    #         return user
-    #     raise serializers.ValidationError("Incorrect username/password")
+    def validate(self, data):
+        username = data.get('username')
+        password = data.get('password')
+        user = authenticate(username=username, password=password)
+        if user:
+            return user
+        raise serializers.ValidationError("Incorrect username/password")
 
 
 
