@@ -62,7 +62,6 @@ class DeleteUserAPIView(APIView):
     def delete(self, request):
         serializer = DeleteUserSerializer(data=request.data)
         if serializer.is_valid():
-            print(f'SERIALIZER VALIDATED DATA: {serializer.validated_data}')
             user = CustomUser.objects.get(username=serializer.validated_data.get("username"))
             # Delete all access tokens associated with the user
             AccessToken.objects.filter(user_id=user.id).delete()
