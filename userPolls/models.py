@@ -21,7 +21,7 @@ class CustomUser(AbstractUser):
     postal_code = models.CharField(max_length=20, blank=False)
     phone_number = models.CharField(max_length=20, blank=True)
     gender = models.CharField(max_length=10, blank=False)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
     is_active = models.BooleanField(default=False)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)

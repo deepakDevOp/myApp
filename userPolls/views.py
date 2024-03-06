@@ -8,20 +8,35 @@ from .models import CustomUser
 from .utils import *
 
 
-class SignupAPIView(APIView):
+class RegisterUserAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         data = request.data
-        serializer = SignupSerializer(data=data)
+        serializer = RegisterUserSerializer(data=data)
         if serializer.is_valid():
-            serializer.validated_data["password"] = make_password(data["password"], salt="my_known_salt")
             serializer.save()
             user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
-            return Response({'message': 'Signup Successful',
-                             'data': CustomUserSerializer(user).data,
+            return Response({'message': 'User registered Successfully',
+                             'data': serializer.data,
                              'access_token': access_token.token},
+                            status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SignupAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def patch(self, request):
+        data = request.data
+        user = CustomUser.objects.get(username=data["username"])
+        serializer = SignupSerializer(instance=user, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            user = CustomUser.objects.get(username=data["username"])
+            return Response({'message': 'Signup Successful',
+                             'data': CustomUserSerializer(user).data},
                             status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,7 +48,7 @@ class LoginAPIView(APIView):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             serializer_data = serializer.validated_data
-            user = CustomUser.objects.get(username=serializer_data)
+            user = CustomUser.objects.get(username=serializer_data.get("username"))
             access_token = generate_oauth_token_save_in_db(user)
             return Response({'message': 'Login Successful',
                              'data': CustomUserSerializer(user).data,
@@ -47,7 +62,8 @@ class DeleteUserAPIView(APIView):
     def delete(self, request):
         serializer = DeleteUserSerializer(data=request.data)
         if serializer.is_valid():
-            user = CustomUser.objects.get(username=serializer.validated_data)
+            print(f'SERIALIZER VALIDATED DATA: {serializer.validated_data}')
+            user = CustomUser.objects.get(username=serializer.validated_data.get("username"))
             # Delete all access tokens associated with the user
             AccessToken.objects.filter(user_id=user.id).delete()
             # Delete the user
