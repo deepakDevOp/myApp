@@ -6,7 +6,7 @@ click==8.0.3
 colorama==0.4.4
 cryptography==41.0.3
 Django==3.2.11
-django-binary-database-files==1.0.15
+django-binary-database-files==1.0.18
 django-oauth-toolkit==2.3.0
 django-oauth2-provider==0.2.6.1
 django-rest-knox==4.2.0
