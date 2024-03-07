@@ -30,7 +30,12 @@ class SignupAPIView(APIView):
 
     def patch(self, request):
         data = request.data
-        user = CustomUser.objects.get(username=data["username"])
+        print(f'DATA: {data}')
+        try:
+            user = CustomUser.objects.get(username=data["username"])
+        except CustomUser.DoesNotExist:
+            return Response({'message': f'User-{data.get("username")} does not exist.'},
+                            status=status.HTTP_404_NOT_FOUND)
         serializer = SignupSerializer(instance=user, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
