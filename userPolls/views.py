@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import JsonResponse
@@ -144,3 +145,25 @@ class PasswordResetConfirmAPIView(APIView):
 
         return Response({'message': 'Password reset successfully'},
                         status=status.HTTP_200_OK)
+
+
+class AddEventAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = AddEventListSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Events created successfully',
+                             'events': serializer.validated_data.get("event_name")},
+                            status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetEventAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        events = EventList.objects.all()
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

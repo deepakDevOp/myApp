@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
@@ -129,3 +130,21 @@ class LoginSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin, seri
 class DeleteUserSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin, serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventList
+        fields = "__all__"
+
+
+class AddEventListSerializer(serializers.Serializer):
+    event_name = serializers.ListField(child=serializers.CharField(max_length=100))
+
+    def create(self, validated_data):
+        event_names = validated_data.get('event_name')
+        created_events = []
+        for event_name in event_names:
+            event = EventList.objects.create(event_name=event_name)
+            created_events.append(event)
+        return created_events

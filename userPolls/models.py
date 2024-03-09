@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.hashers import (
-    check_password, is_password_usable, make_password,
-)
+import uuid
 
 
 class CustomUser(AbstractUser):
@@ -26,3 +24,11 @@ class CustomUser(AbstractUser):
     is_active = models.BooleanField(default=False)
     profile_picture = models.ImageField(blank=True, null=True)
     profile_pic_url = models.CharField(max_length=200, blank=True)
+
+
+class EventList(models.Model):
+
+    event_name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.event_name
