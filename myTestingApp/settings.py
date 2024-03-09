@@ -159,13 +159,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # Email settings for SMTP server
 EMAIL_HOST = 'smtp.gmail.com'  # SMTP server address
 EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
-EMAIL_HOST_USER = 'deepak.513770@gmail.com'  # Your email address
-EMAIL_HOST_PASSWORD = 'aptf kzfn umva kgwv'  # Your email password
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Your email address
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Your email password
 EMAIL_USE_TLS = True  # Enable TLS (Transport Layer Security) encryption
 # EMAIL_USE_SSL = True  # Uncomment if using SSL encryption instead of TLS
 
-AWS_ACCESS_KEY_ID = 'AKIATCKAMWX7GJSHGW6S'
-AWS_SECRET_ACCESS_KEY = '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'
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'hehbucket'
 AWS_S3_SIGNATURE_NAME = 's3v4'
 AWS_S3_REGION_NAME = 'ap-south-1'  # e.g., 'us-west-1'
