@@ -4,6 +4,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import *
 import string
+import boto3
+from django.conf import settings
 
 
 def authenticate_user(username, password):
@@ -18,6 +20,7 @@ def authenticate_user(username, password):
 class UsernameValidatorMixin:
     def validate_username(self, data):
         try:
+            print(data)
             user = CustomUser.objects.get(username=data)
             return data
         except CustomUser.DoesNotExist:
@@ -71,7 +74,7 @@ class PhoneNumberValidatorMixin:
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = "__all__"
+        exclude = ("profile_picture",)
         extra_kwargs = {'password': {'write_only': True}}
 
 
@@ -95,7 +98,18 @@ class SignupSerializer(AuthenticationValidatorMixin, PhoneNumberValidatorMixin,
         exclude = ("email",)
         extra_kwargs = {'password': {'write_only': True}}
 
+    def upload_image_to_s3(self, image_data, file_name):
+        key = f"profile_pictures/{file_name}.png"
+        s3 = boto3.client('s3')
+        s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=image_data)
+        image_url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}'
+        return image_url
+
     def update(self, instance, validated_data):
+        file_name = f"{validated_data.get('username')}_pic"
+        image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
+                                file_name=file_name)
+        validated_data["profile_pic_url"] = image_url
         validated_data.pop("username")
         validated_data.pop("password")
         # Update the remaining fields

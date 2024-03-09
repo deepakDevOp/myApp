@@ -2,6 +2,8 @@ from django.utils import timezone
 from oauthlib.common import generate_token
 from datetime import timedelta
 from oauth2_provider.models import AccessToken
+import secrets
+import string
 
 
 def generate_oauth_token_save_in_db(user):
@@ -16,3 +18,9 @@ def generate_oauth_token_save_in_db(user):
         application=None  # Assuming this is a confidential client
     )
     return access_token
+
+
+def generate_alphanumeric_otp(length=6):
+    alphanumeric_chars = string.ascii_letters + string.digits
+    otp = ''.join(secrets.choice(alphanumeric_chars) for _ in range(length))
+    return otp
