@@ -1,1 +1,1 @@
-heh django app
+heh django app for events
