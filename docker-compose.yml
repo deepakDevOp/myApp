@@ -2,9 +2,7 @@ version: '3'
 
 services:
   whm_backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: 2041deepak/my_django_app_whm:latest
     ports:
       - "8000:8000"
     volumes:
