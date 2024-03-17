@@ -21,7 +21,7 @@ class CustomUser(AbstractUser):
     gender = models.CharField(max_length=10, blank=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     profile_picture = models.ImageField(blank=True, null=True)
     profile_pic_url = models.CharField(max_length=200, blank=True)
 

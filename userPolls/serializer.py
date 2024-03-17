@@ -13,6 +13,8 @@ def authenticate_user(username, password):
     UserModel = get_user_model()
     user = UserModel.objects.get(username=username)
     hashed_password = make_password(password, salt="my_known_salt")
+    print(f'HASHED PASSWORD: {hashed_password}')
+    print(f'USER PASSWORD: {user.password}')
     if hashed_password == user.password:
         return user
     return None
@@ -21,8 +23,10 @@ def authenticate_user(username, password):
 class UsernameValidatorMixin:
     def validate_username(self, data):
         try:
-            print(data)
             user = CustomUser.objects.get(username=data)
+            if user.is_active is False:
+                raise serializers.ValidationError(f'User - {data} has been deactivated, please change your password '
+                                                  f'to reactivate the account.')
             return data
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError(f'User - {data} does not exist.')
@@ -107,9 +111,12 @@ class SignupSerializer(AuthenticationValidatorMixin, PhoneNumberValidatorMixin,
         return image_url
 
     def update(self, instance, validated_data):
-        file_name = f"{validated_data.get('username')}_pic"
-        image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
-                                file_name=file_name)
+        profile_picture = validated_data.get("profile_picture")
+        if profile_picture:
+            file_name = f"{validated_data.get('username')}_pic"
+            image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
+                                    file_name=file_name)
+            validated_data.pop("profile_picture")
         validated_data["profile_pic_url"] = image_url
         validated_data.pop("username")
         validated_data.pop("password")
@@ -148,3 +155,22 @@ class AddEventListSerializer(serializers.Serializer):
             event = EventList.objects.create(event_name=event_name)
             created_events.append(event)
         return created_events
+
+
+class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, data):
+        """
+        Validate that the email exists in the database.
+        """
+        try:
+            CustomUser.objects.get(email=data)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist")
+        return data
+
+
+class PasswordResetConfirmSerializer(PasswordValidatorMixin, serializers.Serializer):
+    otp = serializers.CharField(max_length=6)
+    password = serializers.CharField(max_length=128)
