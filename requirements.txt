@@ -16,7 +16,6 @@ PyYAML==6.0.1
 requests==2.31.0
 sqlparse==0.4.4
 tzdata==2021.5
-urllib3==5.26.0
 python-dotenv==1.0.1
 mysqlclient
 boto3==1.34.58
