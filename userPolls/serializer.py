@@ -13,8 +13,6 @@ def authenticate_user(username, password):
     UserModel = get_user_model()
     user = UserModel.objects.get(username=username)
     hashed_password = make_password(password, salt="my_known_salt")
-    print(f'HASHED PASSWORD: {hashed_password}')
-    print(f'USER PASSWORD: {user.password}')
     if hashed_password == user.password:
         return user
     return None
@@ -105,7 +103,8 @@ class SignupSerializer(AuthenticationValidatorMixin, PhoneNumberValidatorMixin,
 
     def upload_image_to_s3(self, image_data, file_name):
         key = f"profile_pictures/{file_name}.png"
-        s3 = boto3.client('s3')
+        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=image_data)
         image_url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}'
         return image_url
@@ -115,9 +114,9 @@ class SignupSerializer(AuthenticationValidatorMixin, PhoneNumberValidatorMixin,
         if profile_picture:
             file_name = f"{validated_data.get('username')}_pic"
             image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
-                                    file_name=file_name)
+                                                file_name=file_name)
             validated_data.pop("profile_picture")
-        validated_data["profile_pic_url"] = image_url
+            validated_data["profile_pic_url"] = image_url
         validated_data.pop("username")
         validated_data.pop("password")
         # Update the remaining fields
