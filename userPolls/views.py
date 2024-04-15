@@ -15,6 +15,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from django.utils.encoding import force_bytes
 from django.urls import reverse
+from django.shortcuts import render
+
+
+def home(request):
+    # Render the HTML template named 'index.html'
+    return render(request, 'homepage.html')
 
 
 class RegisterUserAPIView(APIView):
@@ -95,7 +101,6 @@ class PasswordResetRequestAPIView(APIView):
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data.get('email')
             try:
                 email = serializer.validated_data.get('email')
                 token = generate_alphanumeric_otp()
@@ -155,7 +160,7 @@ class AddEventAPIView(APIView):
 class GetEventAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self):
         events = EventList.objects.all()
         serializer = EventSerializer(events, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

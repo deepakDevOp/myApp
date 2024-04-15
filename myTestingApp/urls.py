@@ -15,9 +15,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from userPolls.views import home
 
 urlpatterns = [
     path('oauth2/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     path("userPolls/", include("userPolls.urls")),
-    path('admin/', admin.site.urls)
+    path('admin/', admin.site.urls),
+    path('', home, name='home')
 ]
