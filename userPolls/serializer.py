@@ -136,12 +136,6 @@ class DeleteUserSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin,
     password = serializers.CharField()
 
 
-class EventListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventList
-        fields = "__all__"
-
-
 class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer):
     email = serializers.EmailField()
 
