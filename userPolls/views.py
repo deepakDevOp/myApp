@@ -160,7 +160,7 @@ class AddEventAPIView(APIView):
 class GetEventAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self):
+    def get(self, request):
         events = EventList.objects.all()
         serializer = EventSerializer(events, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

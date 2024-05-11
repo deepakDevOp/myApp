@@ -10,7 +10,7 @@ class CustomUser(AbstractUser):
     password = models.CharField(max_length=150, unique=False, blank=False)
     first_name = models.CharField(max_length=30, blank=False)
     last_name = models.CharField(max_length=30, blank=True)
-    date_of_birth = models.DateField(null=True, blank=False)
+    date_of_birth = models.CharField(max_length=50, blank=True, default="")
     address = models.CharField(max_length=255, blank=False)
     city = models.CharField(max_length=100, blank=False)
     state = models.CharField(max_length=100, blank=False)
