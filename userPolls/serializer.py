@@ -84,7 +84,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 class RegisterUserSerializer(EmailValidatorMixin, PasswordValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ("username", "email", "password")
+        fields = ("username", "email", "password", "id")
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -93,8 +93,7 @@ class RegisterUserSerializer(EmailValidatorMixin, PasswordValidatorMixin, serial
         return super().create(validated_data)
 
 
-class SignupSerializer(AuthenticationValidatorMixin, PhoneNumberValidatorMixin,
-                       serializers.ModelSerializer):
+class SignupSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
