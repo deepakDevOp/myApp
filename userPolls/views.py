@@ -186,7 +186,8 @@ class EventAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             event = Event.objects.get(id=serializer.data.get("id"))
-            eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"  # Create event_id from id and event_name
+            # Create event_id from id and event_name
+            eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"
             event.eventid = eventid
             event.save()
             return Response({"message": "Event created successfully",
@@ -199,7 +200,8 @@ class EventAPIView(APIView):
         except Event.DoesNotExist:
             return Response({'message': f"Event-{request.data.get('eventid')} does not exist."},
                             status=status.HTTP_404_NOT_FOUND)
-        serializer = UpdateEventSerializer(instance=event, data=request.data, context={'request': request})
+        serializer = UpdateEventSerializer(instance=event, data=request.data,
+                                           context={'request': request}, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Event updated successfully",
@@ -207,11 +209,8 @@ class EventAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
-        print("DELETE METHOD")
-        print(f"request data = {request.data}")
         serializer = DeleteEventSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            print(F"INSIDE VALID")
             event = Event.objects.get(eventid=request.data.get("eventid"))
             event.delete()
             return Response({"message": "Event deleted successfully"},
