@@ -26,13 +26,13 @@ class RegisterUserAPIView(APIView):
         serializer = RegisterUserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
-            # user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
-            serializer.data['access_token'] = access_token.token
+            response_data = serializer.data
+            response_data['access_token'] = access_token.token
             return Response({'message': 'User registered Successfully',
-                             'data': serializer.data},
+                             'data': response_data},
                             status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -69,9 +69,10 @@ class LoginAPIView(APIView):
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
+            response_data = CustomUserSerializer(user).data
+            response_data['access_token'] = access_token.token
             return Response({'message': 'Login Successful',
-                             'data': CustomUserSerializer(user).data,
-                             'access_token': access_token.token}, status=status.HTTP_200_OK)
+                             'data': response_data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -148,12 +149,15 @@ class GetProfileAPIView(APIView):
 
     def get(self, request):
         try:
-            user = CustomUser.objects.get(username=request.GET.get('username'))
+            username = request.GET.get('username')
+            user = CustomUser.objects.get(username=username)
             if user.is_active is False:
-                raise ValidationError(f'User - {request.data.get("username")} has been deactivated, please change your '
-                                      f'password to reactivate the account.')
+                return Response({"error": f'User - {username} has been deactivated, please change your '
+                                      f'password to reactivate the account.'},
+                                status=status.HTTP_400_BAD_REQUEST)
         except CustomUser.DoesNotExist:
-            raise ValidationError(f'User - {request.data.get("username")} does not exist.')
+            return Response({"error": f'User - {username} does not exist.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         serializer = CustomUserSerializer(user)
         return Response({"message": "User data found",
