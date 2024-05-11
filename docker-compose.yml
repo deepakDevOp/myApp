@@ -4,6 +4,6 @@ services:
   whm_backend:
     image: 2041deepak/my_django_app_whm:latest
     ports:
-      - "8000:8000"
+      - "80:80"
     volumes:
       - /home/ubuntu/env/.env:/app/.env
