@@ -117,7 +117,6 @@ class SignupSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
             validated_data.pop("profile_picture")
             validated_data["profile_pic_url"] = image_url
         validated_data.pop("username")
-        validated_data.pop("password")
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
