@@ -20,6 +20,7 @@ from userPolls.views import home
 urlpatterns = [
     path('oauth2/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     path("userPolls/", include("userPolls.urls")),
+    path("eventApp/", include("eventApp.urls")),
     path('admin/', admin.site.urls),
     path('', home, name='home')
 ]

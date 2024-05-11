@@ -1,9 +1,5 @@
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import JsonResponse
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,8 +9,7 @@ from .models import CustomUser
 from .utils import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-from django.utils.encoding import force_bytes
-from django.urls import reverse
+
 from django.shortcuts import render
 
 
@@ -148,82 +143,12 @@ class PasswordResetConfirmAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AddEventAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = AddEventListSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Events created successfully',
-                             'events': serializer.validated_data.get("event_name")},
-                            status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetEventAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        events = EventList.objects.all()
-        serializer = EventSerializer(events, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class EventAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        serializer = GetEventSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            event = Event.objects.get(eventid=serializer.validated_data.get("eventid"))
-            return Response({"message": "Event found",
-                             "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def post(self, request):
-        serializer = CreateEventSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            event = Event.objects.get(id=serializer.data.get("id"))
-            # Create event_id from id and event_name
-            eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"
-            event.eventid = eventid
-            event.save()
-            return Response({"message": "Event created successfully",
-                             "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request):
-        try:
-            event = Event.objects.get(eventid=request.data.get('eventid'))
-        except Event.DoesNotExist:
-            return Response({'message': f"Event-{request.data.get('eventid')} does not exist."},
-                            status=status.HTTP_404_NOT_FOUND)
-        serializer = UpdateEventSerializer(instance=event, data=request.data,
-                                           context={'request': request}, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Event updated successfully",
-                             "data": serializer.data}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request):
-        serializer = DeleteEventSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            event = Event.objects.get(eventid=request.data.get("eventid"))
-            event.delete()
-            return Response({"message": "Event deleted successfully"},
-                            status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class GetProfileAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
         try:
-            user = CustomUser.objects.get(username=request.data.get('username'))
+            user = CustomUser.objects.get(username=request.GET.get('username'))
             if user.is_active is False:
                 raise ValidationError(f'User - {request.data.get("username")} has been deactivated, please change your '
                                       f'password to reactivate the account.')
