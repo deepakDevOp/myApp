@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-82m1ej6)=l6i@0v^%4wr-n2d$0go*b+5z#bk(djv4z4lsbq2hw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["heartehomies.com", "www.heartehomies.com", "https://heartehomies.com", "*"]
 
 
 # Application definition
@@ -62,7 +62,7 @@ ROOT_URLCONF = 'myTestingApp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -150,3 +150,30 @@ REST_FRAMEWORK = {
 OAUTH2_PROVIDER = {
     'ACCESS_TOKEN_EXPIRE_SECONDS': 172800,  # 12 hours in seconds
 }
+
+# settings.py
+
+# Set email backend to SMTP
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Email settings for SMTP server
+EMAIL_HOST = 'smtp.gmail.com'  # SMTP server address
+EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Your email address
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Your email password
+EMAIL_USE_TLS = True  # Enable TLS (Transport Layer Security) encryption
+# EMAIL_USE_SSL = True  # Uncomment if using SSL encryption instead of TLS
+
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'hehbucket'
+AWS_S3_SIGNATURE_NAME = 's3v4'
+AWS_S3_REGION_NAME = 'ap-south-1'  # e.g., 'us-west-1'
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_S3_VERIFY = True
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Define the duration of session cookies in seconds
+SESSION_COOKIE_AGE = 60
+

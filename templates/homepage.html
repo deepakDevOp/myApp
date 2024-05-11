@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart-e-Homies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        header {
+            background-color: #ff6b6b;
+            padding: 20px 0;
+            text-align: center;
+            color: #fff;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 36px;
+        }
+
+        .logo {
+            display: inline-block;
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+            position: relative;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #ffcc29, #5ac8fa, #007bff, #8447ff, #ff6b6b);
+            animation: gradientAnimation 10s linear infinite;
+        }
+
+        .text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        section {
+            text-align: center;
+            padding: 20px;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <div class="text">Homies</div>
+        </div>
+        <h1>Heart-e-Homies</h1>
+    </header>
+
+    <section>
+        <h2>Welcome to Heart-e-Homies</h2>
+        <p>Connect with your homies and build lasting friendships!</p>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Heart-e-Homies. All rights reserved.</p>
+    </footer>
+</body>
+</html>

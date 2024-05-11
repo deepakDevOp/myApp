@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    stages {
+        stage ("Code") {
+            steps {
+                git url: "https://github.com/deepakDevOp/myApp" ,  branch: "master"
+                echo "Code cloned successfully."
+            }
+        }
+        stage ("Build") {
+            steps {
+                sh "docker build -t 2041deepak/my_django_app_whm:latest ."
+                echo "Docker image built sucessfully."
+            }
+        }
+        stage ("Docker image push to Docker Hub") {
+            steps {
+                withCredentials([usernamePassword(credentialsId:"DockerHubCreds",passwordVariable:"dockerPass",usernameVariable:"dockerUsername")]){
+                sh "docker login -u ${env.dockerUsername} -p ${env.dockerPass}"
+                sh "docker push 2041deepak/my_django_app_whm:latest"
+                }
+            }
+        }
+        stage ("Deploy") {
+            steps {
+                sh "docker-compose down && docker-compose up -d"
+                echo "App deployed successfully."
+            }
+        }
+    }
+}
