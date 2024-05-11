@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializer import *
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
 
 class AddEventAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = AddEventListSerializer(data=request.data)
@@ -19,7 +19,7 @@ class AddEventAPIView(APIView):
 
 
 class GetEventAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         events = EventList.objects.all()
@@ -28,7 +28,7 @@ class GetEventAPIView(APIView):
 
 
 class EventAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         serializer = GetEventSerializer(data=request.GET, context={'request': request})

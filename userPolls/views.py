@@ -38,9 +38,11 @@ class RegisterUserAPIView(APIView):
 
 
 class SignupAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def patch(self, request):
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to signup with given user credentials.")
         username = request.data.get("username")
         try:
             user = CustomUser.objects.get(username=username)
@@ -57,11 +59,11 @@ class SignupAPIView(APIView):
 
 
 class LoginAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # if request.user.username != request.data.get("username"):
-        #     raise PermissionDenied("You are not authorized to login with given user credentials.")
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to login with given user credentials.")
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             serializer_data = serializer.validated_data
@@ -77,12 +79,12 @@ class LoginAPIView(APIView):
 
 
 class DeleteUserAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def delete(self, request):
         serializer = DeleteUserSerializer(data=request.data)
-        # if request.user.username != request.data.get("username"):
-        #     raise PermissionDenied("You are not authorized to delete this user.")
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to delete this user.")
         if serializer.is_valid():
             user = CustomUser.objects.get(username=serializer.validated_data.get("username"))
             # Delete all access tokens associated with the user
@@ -96,7 +98,7 @@ class DeleteUserAPIView(APIView):
 
 
 class PasswordResetRequestAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -121,7 +123,7 @@ class PasswordResetRequestAPIView(APIView):
 
 
 class PasswordResetConfirmAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -145,7 +147,7 @@ class PasswordResetConfirmAPIView(APIView):
 
 
 class GetProfileAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
