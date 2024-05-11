@@ -211,19 +211,6 @@ class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
         model = Event
         fields = '__all__'
 
-    def update(self, instance, validated_data):
-        eventid = validated_data.get("eventid")
-        ignored_fields = ("eventid", "event_name", "event_host_day")
-        # Update the remaining fields
-        for key, value in validated_data.items():
-            if key in ignored_fields:
-                continue
-            setattr(instance, key, value)
-
-        # Save the instance
-        instance.save()
-        return instance
-
 
 class DeleteEventSerializer(EventValidatorMixin, serializers.Serializer):
     eventid = serializers.CharField()
