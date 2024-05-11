@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializer import *
@@ -45,18 +44,18 @@ class EventAPIView(APIView):
             serializer.save()
             event = Event.objects.get(id=serializer.data.get("id"))
             # Create event_id from id and event_name
-            eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"
-            event.eventid = eventid
+            event.eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"
             event.save()
             return Response({"message": "Event created successfully",
                              "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
+        eventid = request.data.get('eventid')
         try:
-            event = Event.objects.get(eventid=request.data.get('eventid'))
+            event = Event.objects.get(eventid=eventid)
         except Event.DoesNotExist:
-            return Response({'message': f"Event-{request.data.get('eventid')} does not exist."},
+            return Response({'message': f"Event-{eventid} does not exist."},
                             status=status.HTTP_404_NOT_FOUND)
         serializer = UpdateEventSerializer(instance=event, data=request.data,
                                            context={'request': request}, partial=True)
