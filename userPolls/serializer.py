@@ -74,6 +74,23 @@ class PhoneNumberValidatorMixin:
         return data
 
 
+class EventValidatorMixin:
+    def validate(self, value):
+        print(f"VALUE = {value}")
+        if not value:
+            raise serializers.ValidationError("Event id is required.")
+        try:
+            event = Event.objects.get(eventid=value.get('eventid'))
+        except Event.DoesNotExist:
+            if self.context['request'].method in ['PATCH', 'DELETE', 'GET']:
+                raise serializers.ValidationError(f"Event: {value.get('eventid')} does not exist.")
+            elif self.context['request'].method == 'POST':
+                return value
+        if self.context['request'].method == 'POST':
+            raise serializers.ValidationError(f"Event: {value.get('eventid')} already exists.")
+        return value
+
+
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -136,7 +153,7 @@ class DeleteUserSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin,
     password = serializers.CharField()
 
 
-class EventSerializer(serializers.ModelSerializer):
+class EventListSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventList
         fields = "__all__"
@@ -171,3 +188,48 @@ class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer
 class PasswordResetConfirmSerializer(PasswordValidatorMixin, serializers.Serializer):
     otp = serializers.CharField(max_length=6)
     password = serializers.CharField(max_length=128)
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = '__all__'
+
+class GetEventSerializer(EventValidatorMixin, serializers.Serializer):
+    eventid = serializers.CharField()
+
+class CreateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
+    event_name = serializers.CharField()
+
+    class Meta:
+        model = Event
+        fields = '__all__'
+
+
+class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
+    eventid = serializers.CharField()
+    class Meta:
+        model = Event
+        fields = '__all__'
+
+    def update(self, instance, validated_data):
+        eventid = validated_data.get("eventid")
+        ignored_fields = ("eventid", "event_name", "event_host_day")
+        # Update the remaining fields
+        for key, value in validated_data.items():
+            if key in ignored_fields:
+                continue
+            setattr(instance, key, value)
+
+        # Save the instance
+        instance.save()
+        return instance
+
+
+class DeleteEventSerializer(EventValidatorMixin, serializers.Serializer):
+    eventid = serializers.CharField()
+
+
+
+
+
+

@@ -9,5 +9,7 @@ urlpatterns = [
     path('login/', LoginAPIView.as_view(), name='LoginAPIView'),
     path('delete_user/', DeleteUserAPIView.as_view(), name='DeleteUserAPIView'),
     path('add_event/', AddEventAPIView.as_view(), name='AddEventAPIView'),
-    path('get_events/', GetEventAPIView.as_view(), name='GetEventAPIView')
+    path('get_events/', GetEventAPIView.as_view(), name='GetEventAPIView'),
+    path('events/', EventAPIView.as_view(), name='event-detail'),
+    path('get_user/', GetProfileAPIView.as_view(), name='GetProfileAPIView')
 ]

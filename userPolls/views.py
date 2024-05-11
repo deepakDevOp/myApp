@@ -35,9 +35,9 @@ class RegisterUserAPIView(APIView):
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
+            serializer.data['access_token'] = access_token.token
             return Response({'message': 'User registered Successfully',
-                             'data': serializer.data,
-                             'access_token': access_token.token},
+                             'data': serializer.data},
                             status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -168,3 +168,72 @@ class GetEventAPIView(APIView):
         events = EventList.objects.all()
         serializer = EventSerializer(events, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class EventAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = GetEventSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            event = Event.objects.get(eventid=serializer.validated_data.get("eventid"))
+            return Response({"message": "Event found",
+                             "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request):
+        serializer = CreateEventSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            event = Event.objects.get(id=serializer.data.get("id"))
+            eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"  # Create event_id from id and event_name
+            event.eventid = eventid
+            event.save()
+            return Response({"message": "Event created successfully",
+                             "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        try:
+            event = Event.objects.get(eventid=request.data.get('eventid'))
+        except Event.DoesNotExist:
+            return Response({'message': f"Event-{request.data.get('eventid')} does not exist."},
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = UpdateEventSerializer(instance=event, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Event updated successfully",
+                             "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        print("DELETE METHOD")
+        print(f"request data = {request.data}")
+        serializer = DeleteEventSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            print(F"INSIDE VALID")
+            event = Event.objects.get(eventid=request.data.get("eventid"))
+            event.delete()
+            return Response({"message": "Event deleted successfully"},
+                            status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetProfileAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            user = CustomUser.objects.get(username=request.data.get('username'))
+            if user.is_active is False:
+                raise ValidationError(f'User - {request.data.get("username")} has been deactivated, please change your '
+                                      f'password to reactivate the account.')
+        except CustomUser.DoesNotExist:
+            raise ValidationError(f'User - {request.data.get("username")} does not exist.')
+
+        serializer = CustomUserSerializer(user)
+        return Response({"message": "User data found",
+                         "data": serializer.data},
+                        status=status.HTTP_200_OK)
+
+
