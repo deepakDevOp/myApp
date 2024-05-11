@@ -33,6 +33,8 @@ class RegisterUserAPIView(APIView):
             user = serializer.save()
             # user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
+            user.last_login = timezone.now()
+            user.save()
             return Response({'message': 'User registered Successfully',
                              'data': serializer.data,
                              'access_token': access_token.token},
@@ -70,6 +72,8 @@ class LoginAPIView(APIView):
             serializer_data = serializer.validated_data
             user = CustomUser.objects.get(username=serializer_data.get("username"))
             access_token = generate_oauth_token_save_in_db(user)
+            user.last_login = timezone.now()
+            user.save()
             return Response({'message': 'Login Successful',
                              'data': CustomUserSerializer(user).data,
                              'access_token': access_token.token}, status=status.HTTP_200_OK)

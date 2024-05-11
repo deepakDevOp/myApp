@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-82m1ej6)=l6i@0v^%4wr-n2d$0go*b+5z#bk(djv4z4lsbq2hw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["heartehomies.com", "www.heartehomies.com", "43.205.171.25", "http://heartehomies.com"]
+ALLOWED_HOSTS = ["heartehomies.com", "www.heartehomies.com", "43.205.171.25", "http://heartehomies.com", "127.0.0.1"]
 
 
 # Application definition
