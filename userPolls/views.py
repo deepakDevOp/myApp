@@ -1,9 +1,5 @@
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import JsonResponse
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,8 +9,7 @@ from .models import CustomUser
 from .utils import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-from django.utils.encoding import force_bytes
-from django.urls import reverse
+
 from django.shortcuts import render
 
 
@@ -31,21 +26,23 @@ class RegisterUserAPIView(APIView):
         serializer = RegisterUserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
-            # user = CustomUser.objects.get(username=data["username"])
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
+            response_data = serializer.data
+            response_data['access_token'] = access_token.token
             return Response({'message': 'User registered Successfully',
-                             'data': serializer.data,
-                             'access_token': access_token.token},
+                             'data': response_data},
                             status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignupAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def patch(self, request):
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to signup with given user credentials.")
         username = request.data.get("username")
         try:
             user = CustomUser.objects.get(username=username)
@@ -62,11 +59,11 @@ class SignupAPIView(APIView):
 
 
 class LoginAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # if request.user.username != request.data.get("username"):
-        #     raise PermissionDenied("You are not authorized to login with given user credentials.")
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to login with given user credentials.")
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             serializer_data = serializer.validated_data
@@ -74,19 +71,20 @@ class LoginAPIView(APIView):
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
+            response_data = CustomUserSerializer(user).data
+            response_data['access_token'] = access_token.token
             return Response({'message': 'Login Successful',
-                             'data': CustomUserSerializer(user).data,
-                             'access_token': access_token.token}, status=status.HTTP_200_OK)
+                             'data': response_data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteUserAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def delete(self, request):
         serializer = DeleteUserSerializer(data=request.data)
-        # if request.user.username != request.data.get("username"):
-        #     raise PermissionDenied("You are not authorized to delete this user.")
+        if request.user.username != request.data.get("username"):
+            raise PermissionDenied("You are not authorized to delete this user.")
         if serializer.is_valid():
             user = CustomUser.objects.get(username=serializer.validated_data.get("username"))
             # Delete all access tokens associated with the user
@@ -100,7 +98,7 @@ class DeleteUserAPIView(APIView):
 
 
 class PasswordResetRequestAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -125,7 +123,7 @@ class PasswordResetRequestAPIView(APIView):
 
 
 class PasswordResetConfirmAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -148,23 +146,24 @@ class PasswordResetConfirmAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AddEventAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = AddEventListSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Events created successfully',
-                             'events': serializer.validated_data.get("event_name")},
-                            status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetEventAPIView(APIView):
-    permission_classes = [AllowAny]
+class GetProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = EventList.objects.all()
-        serializer = EventSerializer(events, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            username = request.GET.get('username')
+            user = CustomUser.objects.get(username=username)
+            if user.is_active is False:
+                return Response({"error": f'User - {username} has been deactivated, please change your '
+                                      f'password to reactivate the account.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f'User - {username} does not exist.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = CustomUserSerializer(user)
+        return Response({"message": "User data found",
+                         "data": serializer.data},
+                        status=status.HTTP_200_OK)
+
+

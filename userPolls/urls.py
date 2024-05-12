@@ -8,6 +8,5 @@ urlpatterns = [
     path('signup/', SignupAPIView.as_view(), name='SignupAPIView'),
     path('login/', LoginAPIView.as_view(), name='LoginAPIView'),
     path('delete_user/', DeleteUserAPIView.as_view(), name='DeleteUserAPIView'),
-    path('add_event/', AddEventAPIView.as_view(), name='AddEventAPIView'),
-    path('get_events/', GetEventAPIView.as_view(), name='GetEventAPIView')
+    path('get_user/', GetProfileAPIView.as_view(), name='GetProfileAPIView')
 ]

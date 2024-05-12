@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'rest_framework',
     'userPolls.apps.UserpollsConfig',
+    'eventApp.apps.eventAppConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
