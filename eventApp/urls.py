@@ -3,7 +3,8 @@ from .views import *
 
 
 urlpatterns = [
-    path('add_event/', AddEventAPIView.as_view(), name='AddEventAPIView'),
-    path('get_events/', GetEventAPIView.as_view(), name='GetEventAPIView'),
+    path('add_event_type/', AddEventTypeAPIView.as_view(), name='AddEventTypeAPIView'),
+    path('get_event_types/', GetEventTypesAPIView.as_view(), name='GetEventTypesAPIView'),
     path('events/', EventAPIView.as_view(), name='event-detail'),
+    path('get_events_list/', MyEventListAPIView.as_view(), name='MyEventListAPIView')
 ]
