@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
 
-class AddEventAPIView(APIView):
+class AddEventTypeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -18,7 +18,7 @@ class AddEventAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetEventAPIView(APIView):
+class GetEventTypesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
