@@ -3,83 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heart-e-Homies</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
-        }
-
-        header {
-            background-color: #ff6b6b;
-            padding: 20px 0;
-            text-align: center;
-            color: #fff;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 36px;
-        }
-
-        .logo {
-            display: inline-block;
-            width: 150px;
-            height: 150px;
-            margin-bottom: 20px;
-            position: relative;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff6b6b, #ffcc29, #5ac8fa, #007bff, #8447ff, #ff6b6b);
-            animation: gradientAnimation 10s linear infinite;
-        }
-
-        .text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: Arial, sans-serif;
-            font-size: 24px;
-            color: #fff;
-            text-transform: uppercase;
-        }
-
-        @keyframes gradientAnimation {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        section {
-            text-align: center;
-            padding: 20px;
-        }
-
-        footer {
-            background-color: #333;
-            color: #fff;
-            padding: 20px 0;
-            text-align: center;
-        }
-    </style>
+    <title>Login Page</title>
 </head>
-<body>
-    <header>
-        <div class="logo">
-            <div class="text">Homies</div>
-        </div>
-        <h1>Heart-e-Homies</h1>
-    </header>
-
-    <section>
-        <h2>Welcome to Heart-e-Homies</h2>
-        <p>Connect with your homies and build lasting friendships!</p>
-    </section>
-
-    <footer>
-        <p>&copy; 2024 Heart-e-Homies. All rights reserved.</p>
-    </footer>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+        <form style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="text-align: center; margin-bottom: 20px;">Login</h2>
+            <div style="margin-bottom: 20px;">
+                <label for="username" style="display: block; font-weight: bold; margin-bottom: 5px;">Username:</label>
+                <input type="text" id="username" name="username" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" required>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="email" style="display: block; font-weight: bold; margin-bottom: 5px;">Email:</label>
+                <input type="email" id="email" name="email" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" required>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="password" style="display: block; font-weight: bold; margin-bottom: 5px;">Password:</label>
+                <input type="password" id="password" name="password" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" required>
+            </div>
+            <button type="submit" style="background-color: #007bff; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%;">Login</button>
+        </form>
+    </div>
 </body>
 </html>
