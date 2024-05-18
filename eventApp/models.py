@@ -18,3 +18,4 @@ class Event(models.Model):
     event_description = models.TextField(blank=True)
     eventid = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(max_length=10, blank=False)
+    username = models.CharField(max_length=150, blank=False, default="")
