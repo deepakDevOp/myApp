@@ -59,11 +59,9 @@ class SignupAPIView(APIView):
 
 
 class LoginAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        if request.user.username != request.data.get("username"):
-            raise PermissionDenied("You are not authorized to login with given user credentials.")
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             serializer_data = serializer.validated_data
