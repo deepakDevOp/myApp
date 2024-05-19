@@ -146,10 +146,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'EXCEPTION_HANDLER': 'userPolls.exceptionHandler.custom_exception_handler'
 }
 
 OAUTH2_PROVIDER = {
-    'ACCESS_TOKEN_EXPIRE_SECONDS': 172800,  # 12 hours in seconds
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 30,  # 12 hours in seconds
+}
+
+OAUTH2_PROVIDER_SETTINGS = {
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 60 * 60 * 24 * 30,  # 30 days
+    'ROTATE_REFRESH_TOKENS': True,
 }
 
 # settings.py
@@ -176,5 +182,5 @@ AWS_S3_VERIFY = True
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Define the duration of session cookies in seconds
-SESSION_COOKIE_AGE = 60
+SESSION_COOKIE_AGE = 600
 

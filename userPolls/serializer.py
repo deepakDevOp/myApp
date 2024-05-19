@@ -1,24 +1,16 @@
 from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import *
 import string
 import boto3
 from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
 
-def authenticate_user(username, password):
-    UserModel = get_user_model()
-    user = UserModel.objects.get(username=username)
-    hashed_password = make_password(password, salt="my_known_salt")
-    if hashed_password == user.password:
-        return user
-    return None
 
-
-class UsernameValidatorMixin:
+class UserValidatorMixin:
     def validate_username(self, data):
         try:
             user = CustomUser.objects.get(username=data)
@@ -30,23 +22,49 @@ class UsernameValidatorMixin:
             raise serializers.ValidationError(f'User - {data} does not exist.')
 
 
+class UsernameValidatorMixin:
+    def validate_username(self, data):
+        if data:
+            raise serializers.ValidationError(f'Username is created in backend.')
+        return data
+
+
 class EmailValidatorMixin:
     def validate_email(self, data):
         try:
             validate_email(data)
+            if self.__class__.__name__ in ("SignupSerializer",
+                                           "PasswordResetRequestSerializer"):
+                user = CustomUser.objects.get(email=data)
         except ValidationError:
             raise serializers.ValidationError("Invalid email address")
+        except CustomUser.DoesNotExist:
+            if self.__class__.__name__ == "PasswordResetRequestSerializer":
+                raise serializers.ValidationError(f"User does not exist with {data}")
+            return data
+        else:
+            if  self.__class__.__name__ == "SignupSerializer":
+                raise serializers.ValidationError(f"User already exists with {data}")
         return data
 
 
 class AuthenticationValidatorMixin:
+
+    def authenticate_user(self,  phone_number, password):
+        user = CustomUser.objects.get(phone_number=phone_number)
+        hashed_password = make_password(password, salt="my_known_salt")
+        if hashed_password == user.password:
+            return user
+        return None
+
+
     def validate(self, data):
-        username = data.get('username')
+        phone_number = data.get('phone_number')
         password = data.get('password')
-        user = authenticate_user(username, password)
+        user = self.authenticate_user(phone_number, password)
         if user:
             return data
-        raise serializers.ValidationError("Incorrect username/password")
+        raise serializers.ValidationError("Incorrect password")
 
 
 class PasswordValidatorMixin:
@@ -70,22 +88,37 @@ class PhoneNumberValidatorMixin:
         # Add your phone number validation logic here
         # For example, you can check if the phone number is of a valid format
         if not data.isdigit() or len(data) != 10:
-            raise ValidationError('Invalid phone number format')
+            raise serializers.ValidationError('Invalid phone number format')
+        if self.__class__.__name__ != "RegisterUserSerializer":
+            try:
+                user = CustomUser.objects.get(phone_number=data)
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError(f'No user with this phone number {data} exists')
         return data
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        exclude = ("profile_picture",)
-        extra_kwargs = {'password': {'write_only': True}}
+        exclude = ("profile_picture", "id")
+        extra_kwargs = {'password': {'write_only': True},
+                        'username': {'write_only': True},
+                        'id': {'write_only': True},
+                        'is_superuser': {'write_only': True},
+                        'is_staff': {'write_only': True},
+                        'groups': {'write_only': True},
+                        'user_permissions': {'write_only': True}}
 
 
-class RegisterUserSerializer(EmailValidatorMixin, PasswordValidatorMixin, serializers.ModelSerializer):
+class RegisterUserSerializer(UsernameValidatorMixin, EmailValidatorMixin,
+                             PasswordValidatorMixin, PhoneNumberValidatorMixin,
+                             serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ("username", "email", "password", "id")
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ("first_name", "email", "password", "username", "phone_number")
+        extra_kwargs = {'password': {'write_only': True},
+                        'username': {'write_only': True}}
+
 
     def create(self, validated_data):
         # Hash the password before saving the user
@@ -93,12 +126,11 @@ class RegisterUserSerializer(EmailValidatorMixin, PasswordValidatorMixin, serial
         return super().create(validated_data)
 
 
-class SignupSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
-
+class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin, PhoneNumberValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        exclude = ("email",)
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = "__all__"
+
 
     def upload_image_to_s3(self, image_data, file_name):
         key = f"profile_pictures/{file_name}.png"
@@ -116,7 +148,6 @@ class SignupSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
                                                 file_name=file_name)
             validated_data.pop("profile_picture")
             validated_data["profile_pic_url"] = image_url
-        validated_data.pop("username")
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
@@ -126,33 +157,18 @@ class SignupSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
         return instance
 
 
-class LoginSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin, serializers.Serializer):
-    username = serializers.CharField()
+class LoginSerializer(PhoneNumberValidatorMixin, AuthenticationValidatorMixin, serializers.Serializer):
+    phone_number = serializers.CharField()
     password = serializers.CharField()
-
-
-class DeleteUserSerializer(UsernameValidatorMixin, AuthenticationValidatorMixin, serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
-
-
-class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer):
-    email = serializers.EmailField()
-
-    def validate_email(self, data):
-        """
-        Validate that the email exists in the database.
-        """
-        try:
-            CustomUser.objects.get(email=data)
-        except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("User with this email does not exist")
-        return data
 
 
 class PasswordResetConfirmSerializer(PasswordValidatorMixin, serializers.Serializer):
     otp = serializers.CharField(max_length=6)
     password = serializers.CharField(max_length=128)
+
+
+class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer):
+    email = serializers.EmailField()
 
 
 

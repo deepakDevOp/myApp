@@ -1,11 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializer import *
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
+from eventApp.serializers.eventListSerializers import *
+from eventApp.serializers.myEventListSerializer import *
+from eventApp.serializers.eventSerializer import *
 
 
-class AddEventAPIView(APIView):
+class AddEventTypeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -18,7 +20,7 @@ class AddEventAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetEventAPIView(APIView):
+class GetEventTypesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -29,7 +31,6 @@ class GetEventAPIView(APIView):
 
 class EventAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
@@ -72,4 +73,29 @@ class EventAPIView(APIView):
             event.delete()
             return Response({"message": "Event deleted successfully"},
                             status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MyEventListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        phone_number = request.GET.get('phone_number', None)
+        username = request.GET.get('username', None)
+
+        if not phone_number and not username:
+            return Response({"error": "Please provide either phone number or username as query parameter"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if phone_number:
+            serializer = PhoneFilteredMyEventListSerializer(data=request.GET, many=True)
+        else:
+            serializer = UsernameFilteredMyEventListSerializer(data=request.GET, many=True)
+        if serializer.is_valid():
+            events = Event.objects.filter(username=username) if \
+                username else Event.objects.filter(phone_number=phone_number)
+            res_data = events
+            return Response({"message": "Events found.", "data": UsernameFilteredMyEventListSerializer(
+                events, many=True).data},
+                            status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
