@@ -18,7 +18,7 @@ class CustomUser(AbstractUser):
     state = models.CharField(max_length=100, blank=True)
     country = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
-    phone_number = models.CharField(max_length=20, blank=False)
+    phone_number = models.CharField(max_length=10, blank=False)
     gender = models.CharField(max_length=10, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
