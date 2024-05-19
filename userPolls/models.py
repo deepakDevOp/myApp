@@ -1,11 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from oauth2_provider.models import AbstractAccessToken
 
 
 class CustomUser(AbstractUser):
     class Meta:
         db_table = 'userPolls_customuser'
 
+    username = models.CharField(max_length=100, unique=True, blank=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=150, unique=False, blank=False)
     first_name = models.CharField(max_length=30, blank=False)

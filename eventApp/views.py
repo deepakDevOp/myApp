@@ -31,7 +31,6 @@ class GetEventTypesAPIView(APIView):
 
 class EventAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
