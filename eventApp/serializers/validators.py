@@ -20,9 +20,9 @@ class EventValidatorMixin:
 
 class PhoneNumberValidatorMixin:
     def validate(self, data):
-        phone_number = data.get("phone_number")
+        phone_number = data.get("receiver_phone_number")
         try:
-            event_list = Event.objects.get(phone_number=phone_number)
+            event_list = Event.objects.get(receiver_phone_number=phone_number)
         except Event.DoesNotExist:
             raise serializers.ValidationError(f"No events are associated with {phone_number}.")
         else:

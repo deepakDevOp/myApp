@@ -1,36 +1,39 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework import status
 from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
+from userPolls.authentication import CustomIsAuthenticated
 
 
 class AddEventTypeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = AddEventListSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Events created successfully',
-                             'events': serializer.validated_data.get("event_name")},
+            return Response({'message': 'Event/s created successfully'},
                             status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class GetEventTypesAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         events = EventList.objects.all()
         serializer = EventListSerializer(events, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"message": "List of events.",
+                         "data": serializer.data}, status=status.HTTP_200_OK)
 
 
 class EventAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
+
     def get(self, request):
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
@@ -77,10 +80,10 @@ class EventAPIView(APIView):
 
 
 class MyEventListAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        phone_number = request.GET.get('phone_number', None)
+        phone_number = request.GET.get('receiver_phone_number', None)
         username = request.GET.get('username', None)
 
         if not phone_number and not username:
@@ -93,9 +96,10 @@ class MyEventListAPIView(APIView):
             serializer = UsernameFilteredMyEventListSerializer(data=request.GET, many=True)
         if serializer.is_valid():
             events = Event.objects.filter(username=username) if \
-                username else Event.objects.filter(phone_number=phone_number)
-            res_data = events
-            return Response({"message": "Events found.", "data": UsernameFilteredMyEventListSerializer(
-                events, many=True).data},
+                username else Event.objects.filter(receiver_phone_number=phone_number)
+            res_data = UsernameFilteredMyEventListSerializer(events, many=True).data if username \
+                else PhoneFilteredMyEventListSerializer(events, many=True).data
+            return Response({"message": "Events found.",
+                             "data": res_data},
                             status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

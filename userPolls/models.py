@@ -25,3 +25,4 @@ class CustomUser(AbstractUser):
     is_active = models.BooleanField(default=True)
     profile_picture = models.ImageField(blank=True, null=True)
     profile_pic_url = models.CharField(max_length=200, blank=True)
+    fcm_token = models.CharField(max_length=200, blank=True, default="")
