@@ -73,7 +73,7 @@ class LoginAPIView(APIView):
             response_data['access_token'] = token_obj.token
             return Response({'message': 'Login Successful',
                              'data': response_data}, status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors.get('non_field_errors')[0]}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteUserAPIView(APIView):
