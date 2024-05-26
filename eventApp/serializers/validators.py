@@ -32,9 +32,7 @@ class PhoneNumberValidatorMixin:
 class UsernameValidatorMixin:
 
     def validate(self, data):
-        print("INSIDE USERNAME VALIDATOR")
         username = data.get("username")
-        print(f'username = {username}')
         try:
             event_list = Event.objects.get(username=username)
         except Event.DoesNotExist:

@@ -6,10 +6,13 @@ from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
+from oauth2_provider.models import AccessToken
+
+from userPolls.models import CustomUser
 
 
 class AddEventTypeAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def post(self, request):
         serializer = AddEventListSerializer(data=request.data)
@@ -22,7 +25,7 @@ class AddEventTypeAPIView(APIView):
 
 
 class GetEventTypesAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
         events = EventList.objects.all()
@@ -32,14 +35,24 @@ class GetEventTypesAPIView(APIView):
 
 
 class EventAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
+        auth_header = request.headers.get('Authorization')
+        token = auth_header.split(' ')[1]
+        access_token = AccessToken.objects.get(token=token)
+        user_id = access_token.user_id
+        user = CustomUser.objects.get(id=user_id)
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
             event = Event.objects.get(eventid=serializer.validated_data.get("eventid"))
-            return Response({"message": "Event found",
-                             "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
+            if event.username == user.username:
+                return Response({"message": "Event found",
+                                 "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": f"Event={serializer.data.get('eventid')} does not belong "
+                                          f"to user={user.username}"},
+                                status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request):
@@ -69,7 +82,7 @@ class EventAPIView(APIView):
         try:
             event = Event.objects.get(eventid=eventid)
         except Event.DoesNotExist:
-            return Response({'message': f"Event-{eventid} does not exist."},
+            return Response({'error': f"Event-{eventid} does not exist."},
                             status=status.HTTP_404_NOT_FOUND)
         serializer = UpdateEventSerializer(context={'request': request}, instance=event,
                                            data=request.data, partial=True)

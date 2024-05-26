@@ -89,18 +89,24 @@ class PhoneNumberValidatorMixin:
         # For example, you can check if the phone number is of a valid format
         if not data.isdigit() or len(data) != 10:
             raise serializers.ValidationError('Invalid phone number format')
-        if self.__class__.__name__ != "RegisterUserSerializer":
-            try:
-                user = CustomUser.objects.get(phone_number=data)
-            except CustomUser.DoesNotExist:
+        try:
+            user = CustomUser.objects.get(phone_number=data)
+        except CustomUser.DoesNotExist:
+            if self.__class__.__name__ != "RegisterUserSerializer":
                 raise serializers.ValidationError(f'No user with this phone number {data} exists')
-        return data
+            else:
+                return data
+        else:
+            if self.__class__.__name__ == "RegisterUserSerializer":
+                raise serializers.ValidationError(f'User with this phone number {data} '
+                                                  f'already exists')
+            return data
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        exclude = ("profile_picture", "id")
+        exclude = ("id",)
         extra_kwargs = {'password': {'write_only': True},
                         'username': {'write_only': True},
                         'id': {'write_only': True},
@@ -110,14 +116,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
                         'user_permissions': {'write_only': True}}
 
 
-class RegisterUserSerializer(UsernameValidatorMixin, EmailValidatorMixin,
+class RegisterUserSerializer(UsernameValidatorMixin,
                              PasswordValidatorMixin, PhoneNumberValidatorMixin,
                              serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ("first_name", "email", "password", "username", "phone_number")
-        extra_kwargs = {'password': {'write_only': True},
-                        'username': {'write_only': True}}
+        fields = ("password", "username", "phone_number")
+        extra_kwargs = {'password': {'write_only': True}}
 
 
     def create(self, validated_data):
@@ -126,10 +131,15 @@ class RegisterUserSerializer(UsernameValidatorMixin, EmailValidatorMixin,
         return super().create(validated_data)
 
 
-class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin, PhoneNumberValidatorMixin, serializers.ModelSerializer):
+class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
+                       PhoneNumberValidatorMixin, serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(allow_null=True)
     class Meta:
         model = CustomUser
-        fields = "__all__"
+        fields = ("first_name", "username", "phone_number",
+                  "profile_pic_url", "profile_picture")
+        extra_kwargs = {'email': {'write_only': True},
+                        "profile_picture": {'erite_only': True}}
 
 
     def upload_image_to_s3(self, image_data, file_name):
@@ -141,9 +151,9 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin, PhoneNumberV
         return image_url
 
     def update(self, instance, validated_data):
-        profile_picture = validated_data.get("profile_picture")
+        profile_picture = validated_data.get("profile_picture", None)
         if profile_picture:
-            file_name = f"{validated_data.get('username')}_pic"
+            file_name = f"{instance.username}_pic"
             image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
                                                 file_name=file_name)
             validated_data.pop("profile_picture")
@@ -156,10 +166,27 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin, PhoneNumberV
         instance.save()
         return instance
 
+    def validate(self, data):
+        # Check if this is a partial update
+        if self.partial:
+            # Manually check for required fields
+            required_fields = ['first_name']
+            for field in required_fields:
+                if field not in data:
+                    raise serializers.ValidationError(f"{field} is required.")
+        return data
 
-class LoginSerializer(PhoneNumberValidatorMixin, AuthenticationValidatorMixin, serializers.Serializer):
+
+class LoginSerializer(PhoneNumberValidatorMixin, AuthenticationValidatorMixin,
+                      serializers.Serializer):
     phone_number = serializers.CharField()
-    password = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+
+class LoginResponseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'phone_number', 'profile_pic_url', 'first_name']
 
 
 class PasswordResetConfirmSerializer(PasswordValidatorMixin, serializers.Serializer):
