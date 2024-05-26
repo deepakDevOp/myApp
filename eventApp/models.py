@@ -20,5 +20,4 @@ class Event(models.Model):
     receiver_phone_number = models.CharField(max_length=10, blank=False, default="")
     username = models.CharField(max_length=150, blank=True, default="")
     receiver_name = models.CharField(max_length=150, blank=False, default="")
-    pic_urls = models.JSONField(default=list)
-    pic = models.ImageField(blank=True, null=True)
+    image_urls = models.JSONField(default=list)
