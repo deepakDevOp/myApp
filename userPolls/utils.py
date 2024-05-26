@@ -42,11 +42,12 @@ def generate_alphanumeric_otp(length=6):
 
 
 def create_save_username(data=None):
-    user = CustomUser.objects.get(email=data.get('email'))
-    username = str(user.id) + '_' + user.first_name
+    user = CustomUser.objects.get(phone_number=data.get('phone_number'))
+    username = str(user.id) + '_' + user.phone_number
     user.username = username
     user.save()
-    return username
+    data['username'] = username
+    return data
 
 
 def send_otp(otp=None, email=None):

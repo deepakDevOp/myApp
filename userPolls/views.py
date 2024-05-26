@@ -2,10 +2,10 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .serializer import (RegisterUserSerializer, SignupSerializer, LoginSerializer,
                          CustomUserSerializer, PasswordResetConfirmSerializer,
-                         PasswordResetRequestSerializer)
+                         PasswordResetRequestSerializer, LoginResponseSerializer)
 from userPolls.models import CustomUser
 from .utils import (generate_oauth_token_save_in_db, generate_alphanumeric_otp,
                     update_access_token, send_otp)
@@ -32,8 +32,7 @@ class RegisterUserAPIView(APIView):
             access_token = generate_oauth_token_save_in_db(user)
             user.last_login = timezone.now()
             user.save()
-            response_data = serializer.data
-            create_save_username(response_data)
+            response_data = create_save_username(serializer.data)
             response_data['access_token'] = access_token.token
             return Response({'message': 'User registered Successfully',
                              'data': response_data},
@@ -69,7 +68,7 @@ class LoginAPIView(APIView):
             token_obj = update_access_token(user=user)
             user.last_login = timezone.now()
             user.save()
-            response_data = CustomUserSerializer(user).data
+            response_data = LoginResponseSerializer(user).data
             response_data['access_token'] = token_obj.token
             return Response({'message': 'Login Successful',
                              'data': response_data}, status=status.HTTP_200_OK)
@@ -139,8 +138,6 @@ class GetProfileAPIView(APIView):
     def get(self, request):
         auth_header = request.headers.get('Authorization')
         token = auth_header.split(' ')[1]
-
-
         try:
             access_token = AccessToken.objects.get(token=token)
             user_id = access_token.user_id

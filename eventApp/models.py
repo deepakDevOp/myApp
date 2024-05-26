@@ -21,3 +21,4 @@ class Event(models.Model):
     username = models.CharField(max_length=150, blank=True, default="")
     receiver_name = models.CharField(max_length=150, blank=False, default="")
     image_urls = models.JSONField(default=list)
+    global_event = models.BooleanField(blank=True, default=False)
