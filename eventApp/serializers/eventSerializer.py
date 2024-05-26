@@ -20,10 +20,15 @@ class CreateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = '__all__'
+        extra_kwargs = {'pic': {'write_only': True}}
 
 
 class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
     eventid = serializers.CharField()
+    pic = serializers.ListField(
+        child=serializers.ImageField(),
+        allow_empty=True
+    )
 
     class Meta:
         model = Event
@@ -31,12 +36,16 @@ class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
         extra_kwargs = {'pic': {'write_only': True}}
 
     def update(self, instance, validated_data):
-        profile_picture = validated_data.get("pic", None)
-        if profile_picture:
+        request = self.context.get('request')
+        pictures = request.FILES.getlist("pic", None)
+        uploaded_images = []
+        for image in pictures:
             eventid = validated_data.get("eventid")
-            image_url = upload_image_to_s3(image_data=profile_picture, event_id=eventid)
-            validated_data.pop("pic")
-            validated_data["pic_urls"] = image_url
+            image_url, file_name = upload_image_to_s3(image_data=image, event_id=eventid)
+            image_data = {"image_id": file_name,
+                          "image_url": image_url}
+            uploaded_images.append(image_data)
+        validated_data["pic_urls"] = uploaded_images
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)

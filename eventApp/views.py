@@ -48,7 +48,17 @@ class EventAPIView(APIView):
             serializer.save()
             event = Event.objects.get(id=serializer.data.get("id"))
             # Create event_id from id and event_name
+            event_id = f"{serializer.data['id']}_{serializer.data['event_name']}"
             event.eventid = f"{serializer.data['id']}_{serializer.data['event_name']}"
+            pictures = request.FILES.getlist("pic", None)
+            uploaded_images = []
+            for image in pictures:
+                image_url, file_name = upload_image_to_s3(image_data=image, event_id=event_id,
+                                                          method=request.method)
+                image_data = {"image_id": file_name,
+                              "image_url": image_url}
+                uploaded_images.append(image_data)
+            event.image_urls = uploaded_images
             event.save()
             return Response({"message": "Event created successfully",
                              "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
@@ -61,12 +71,14 @@ class EventAPIView(APIView):
         except Event.DoesNotExist:
             return Response({'message': f"Event-{eventid} does not exist."},
                             status=status.HTTP_404_NOT_FOUND)
-        serializer = UpdateEventSerializer(instance=event, data=request.data,
-                                           context={'request': request}, partial=True)
+        serializer = UpdateEventSerializer(context={'request': request}, instance=event,
+                                           data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            response_data = serializer.data
+            response_data.pop('pic')
             return Response({"message": "Event updated successfully",
-                             "data": serializer.data}, status=status.HTTP_200_OK)
+                             "data": response_data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
