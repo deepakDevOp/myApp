@@ -45,7 +45,7 @@ class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
             image_data = {"image_id": file_name,
                           "image_url": image_url}
             uploaded_images.append(image_data)
-        validated_data["pic_urls"] = uploaded_images
+        validated_data["image_urls"] = uploaded_images
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
