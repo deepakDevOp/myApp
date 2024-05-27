@@ -7,7 +7,7 @@ from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
 from oauth2_provider.models import AccessToken
-
+from  eventApp.utils import delete_image_s3
 from userPolls.models import CustomUser
 
 
@@ -38,11 +38,7 @@ class EventAPIView(APIView):
     permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
-        auth_header = request.headers.get('Authorization')
-        token = auth_header.split(' ')[1]
-        access_token = AccessToken.objects.get(token=token)
-        user_id = access_token.user_id
-        user = CustomUser.objects.get(id=user_id)
+        user = CustomUser.objects.get(id=request.user.id)
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
             event = Event.objects.get(eventid=serializer.validated_data.get("eventid"))
@@ -66,38 +62,50 @@ class EventAPIView(APIView):
             pictures = request.FILES.getlist("pic", None)
             uploaded_images = []
             for image in pictures:
-                image_url, file_name = upload_image_to_s3(image_data=image, event_id=event_id,
-                                                          method=request.method)
+                image_url, file_name = upload_image_to_s3(image_data=image, event_id=event_id)
                 image_data = {"image_id": file_name,
                               "image_url": image_url}
                 uploaded_images.append(image_data)
             event.image_urls = uploaded_images
+            event.username = request.user.username
+            event.host_name = request.user.first_name
             event.save()
             return Response({"message": "Event created successfully",
                              "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
-        eventid = request.data.get('eventid')
+        eventid = request.data.get('eventid', None)
+        if not eventid:
+            return Response({'error': f"Event Id is required."},
+                            status=status.HTTP_404_NOT_FOUND)
         try:
             event = Event.objects.get(eventid=eventid)
         except Event.DoesNotExist:
-            return Response({'error': f"Event-{eventid} does not exist."},
+            return Response({'error': f"Event - {eventid} does not exist."},
                             status=status.HTTP_404_NOT_FOUND)
+        else:
+            if request.user.username != event.username:
+                return Response({"error": f"Event-{eventid} does not belong "
+                                          f"to username-{request.user.username}"},
+                                status=status.HTTP_400_BAD_REQUEST)
         serializer = UpdateEventSerializer(context={'request': request}, instance=event,
                                            data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            response_data = serializer.data
-            response_data.pop('pic')
-            return Response({"message": "Event updated successfully",
-                             "data": response_data}, status=status.HTTP_200_OK)
+            return Response({"message": "Event updated successfully"},
+                            status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
         serializer = DeleteEventSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             event = Event.objects.get(eventid=request.data.get("eventid"))
+            if request.user.username != event.username:
+                return Response({"error": f"Event-{event.eventid} does not belong "
+                                          f"to username-{request.user.username}"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            delete_image_s3(folder_name=event.eventid)
             event.delete()
             return Response({"message": "Event deleted successfully"},
                             status=status.HTTP_204_NO_CONTENT)
@@ -105,24 +113,19 @@ class EventAPIView(APIView):
 
 
 class MyEventListAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
         phone_number = request.GET.get('receiver_phone_number', None)
-        username = request.GET.get('username', None)
-
-        if not phone_number and not username:
-            return Response({"error": "Please provide either phone number or username as query parameter"},
-                            status=status.HTTP_400_BAD_REQUEST)
 
         if phone_number:
             serializer = PhoneFilteredMyEventListSerializer(data=request.GET, many=True)
         else:
-            serializer = UsernameFilteredMyEventListSerializer(data=request.GET, many=True)
+            serializer = UsernameFilteredMyEventListSerializer(data=request.user.username, many=True)
         if serializer.is_valid():
-            events = Event.objects.filter(username=username) if \
-                username else Event.objects.filter(receiver_phone_number=phone_number)
-            res_data = UsernameFilteredMyEventListSerializer(events, many=True).data if username \
+            events = Event.objects.filter(username=request.user.username) if \
+                not phone_number else Event.objects.filter(receiver_phone_number=phone_number)
+            res_data = UsernameFilteredMyEventListSerializer(events, many=True).data if not phone_number \
                 else PhoneFilteredMyEventListSerializer(events, many=True).data
             return Response({"message": "Events found.",
                              "data": res_data},
