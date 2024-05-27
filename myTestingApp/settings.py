@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'userPolls.apps.UserpollsConfig',
     'eventApp.apps.eventAppConfig',
+    'wishesApp.apps.WishesappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

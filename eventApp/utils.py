@@ -19,11 +19,7 @@ def generate_timestamp():
 def upload_image_to_s3(image_data, event_id):
     s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                       aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-    # if method == "POST":
-    s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=event_id)
-    # count = s3.list_objects_v2(
-    #     Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-    #     Prefix=f"events/{event_id}/").get("KeyCount")
+    # s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=event_id)
     file_name = generate_timestamp()
     key = f"events/{event_id}/{file_name}.png"
     s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=image_data)
