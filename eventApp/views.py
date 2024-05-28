@@ -120,14 +120,21 @@ class MyEventListAPIView(APIView):
 
         if phone_number:
             serializer = PhoneFilteredMyEventListSerializer(data=request.GET, many=True)
+            if serializer.is_valid():
+                pass
+            else:
+                return Response({"error": serializer.errors},
+                                status=status.HTTP_400_BAD_REQUEST)
         else:
-            serializer = UsernameFilteredMyEventListSerializer(data=request.user.username, many=True)
-        if serializer.is_valid():
-            events = Event.objects.filter(username=request.user.username) if \
-                not phone_number else Event.objects.filter(receiver_phone_number=phone_number)
-            res_data = UsernameFilteredMyEventListSerializer(events, many=True).data if not phone_number \
-                else PhoneFilteredMyEventListSerializer(events, many=True).data
-            return Response({"message": "Events found.",
-                             "data": res_data},
-                            status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                event_list = Event.objects.get(username=request.user.username)
+            except Event.DoesNotExist:
+                return Response({"error": "No events are associated with this user"},
+                                status=status.HTTP_404_NOT_FOUND)
+        events = Event.objects.filter(username=request.user.username) if \
+            not phone_number else Event.objects.filter(receiver_phone_number=phone_number)
+        res_data = UsernameFilteredMyEventListSerializer(events, many=True).data if not phone_number \
+             else PhoneFilteredMyEventListSerializer(events, many=True).data
+        return Response({"message": "Events found.",
+                        "data": res_data},
+                        status=status.HTTP_200_OK)
