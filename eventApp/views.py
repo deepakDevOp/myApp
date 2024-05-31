@@ -132,7 +132,7 @@ class MyEventListAPIView(APIView):
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
-                event_list = Event.objects.get(username=request.user.username)
+                event_list = Event.objects.filter(username=request.user.username)
             except Event.DoesNotExist:
                 return Response({"error": "No events are associated with this user"},
                                 status=status.HTTP_404_NOT_FOUND)
