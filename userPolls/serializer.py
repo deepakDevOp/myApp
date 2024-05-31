@@ -32,10 +32,10 @@ class UsernameValidatorMixin:
 class EmailValidatorMixin:
     def validate_email(self, data):
         try:
-            validate_email(data)
+            validate_email(data.lower())
             if self.__class__.__name__ in ("SignupSerializer",
                                            "PasswordResetRequestSerializer"):
-                user = CustomUser.objects.get(email=data)
+                user = CustomUser.objects.get(email=data.lower())
         except ValidationError:
             raise serializers.ValidationError("Invalid email address")
         except CustomUser.DoesNotExist:
@@ -44,8 +44,8 @@ class EmailValidatorMixin:
             return data
         else:
             if  self.__class__.__name__ == "SignupSerializer":
-                raise serializers.ValidationError(f"User already exists with {data}")
-        return data
+                raise serializers.ValidationError(f"User already exists with this email.")
+            return data
 
 
 class AuthenticationValidatorMixin:
@@ -136,10 +136,8 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
     profile_picture = serializers.ImageField(allow_null=True)
     class Meta:
         model = CustomUser
-        fields = ("first_name", "username", "phone_number",
-                  "profile_pic_url", "profile_picture")
-        extra_kwargs = {'email': {'write_only': True},
-                        "profile_picture": {'erite_only': True}}
+        fields = "__all__"
+        extra_kwargs = {"profile_picture": {'write_only': True}}
 
 
     def upload_image_to_s3(self, image_data, file_name):
@@ -158,6 +156,7 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
                                                 file_name=file_name)
             validated_data.pop("profile_picture")
             validated_data["profile_pic_url"] = image_url
+        print(f"Validated data = {validated_data}")
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)

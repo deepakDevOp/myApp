@@ -11,5 +11,4 @@ def custom_exception_handler(exc, context):
     # If the exception is AuthenticationFailed, return custom error response
     if isinstance(exc, AuthenticationFailed):
         return Response({'error': exc.detail}, status=exc.status_code)
-
     return response
