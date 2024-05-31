@@ -59,3 +59,14 @@ def send_otp(otp=None, email=None):
               f'Thank you,\n' \
               f'WHM team'
     send_mail(subject, message, None, [email])
+
+
+def extract_error_message(error):
+    updated_errors = {}
+    if isinstance(error, dict):
+        for key, value in error.items():
+            if key == "non_field_errors":
+                return value[0]
+            updated_errors[key] = value[0]
+        return updated_errors
+    return error

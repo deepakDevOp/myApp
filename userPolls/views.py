@@ -8,7 +8,7 @@ from .serializer import (RegisterUserSerializer, SignupSerializer, LoginSerializ
                          PasswordResetRequestSerializer, LoginResponseSerializer)
 from userPolls.models import CustomUser
 from .utils import (generate_oauth_token_save_in_db, generate_alphanumeric_otp,
-                    update_access_token, send_otp)
+                    update_access_token, send_otp, extract_error_message)
 from django.shortcuts import render
 from userPolls.utils import create_save_username
 from oauth2_provider.models import AccessToken
@@ -72,7 +72,8 @@ class LoginAPIView(APIView):
             response_data['access_token'] = token_obj.token
             return Response({'message': 'Login Successful',
                              'data': response_data}, status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteUserAPIView(APIView):

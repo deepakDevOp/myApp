@@ -9,6 +9,7 @@ from userPolls.authentication import CustomIsAuthenticated
 from oauth2_provider.models import AccessToken
 from  eventApp.utils import delete_image_s3
 from userPolls.models import CustomUser
+from userPolls.utils import extract_error_message
 
 
 class AddEventTypeAPIView(APIView):
@@ -20,7 +21,7 @@ class AddEventTypeAPIView(APIView):
             serializer.save()
             return Response({'message': 'Event/s created successfully'},
                             status=status.HTTP_201_CREATED)
-        return Response({"error": serializer.errors},
+        return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -49,7 +50,8 @@ class EventAPIView(APIView):
                 return Response({"error": f"Event={serializer.data.get('eventid')} does not belong "
                                           f"to user={user.username}"},
                                 status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request):
         serializer = CreateEventSerializer(data=request.data, context={'request': request})
@@ -72,7 +74,8 @@ class EventAPIView(APIView):
             event.save()
             return Response({"message": "Event created successfully",
                              "data": EventSerializer(event).data}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
         eventid = request.data.get('eventid', None)
@@ -95,7 +98,8 @@ class EventAPIView(APIView):
             serializer.save()
             return Response({"message": "Event updated successfully"},
                             status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
         serializer = DeleteEventSerializer(data=request.data, context={'request': request})
@@ -109,7 +113,8 @@ class EventAPIView(APIView):
             event.delete()
             return Response({"message": "Event deleted successfully"},
                             status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class MyEventListAPIView(APIView):
@@ -123,7 +128,7 @@ class MyEventListAPIView(APIView):
             if serializer.is_valid():
                 pass
             else:
-                return Response({"error": serializer.errors},
+                return Response({"error": extract_error_message(serializer.errors)},
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
