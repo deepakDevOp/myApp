@@ -16,7 +16,7 @@ class Event(models.Model):
     event_host_day = models.CharField(max_length=50, blank=False)
     event_subtext = models.TextField(blank=True)
     event_description = models.TextField(blank=True)
-    eventid = models.CharField(max_length=100, blank=True)
+    eventid = models.CharField(max_length=100, blank=True, unique=True)
     receiver_phone_number = models.CharField(max_length=10, blank=False)
     username = models.CharField(max_length=150, blank=True, default="")
     receiver_name = models.CharField(max_length=150, blank=False)

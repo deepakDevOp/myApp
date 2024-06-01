@@ -48,4 +48,5 @@ class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Wishes
-        fields = ['event_id', 'images', 'videos']
+        fields = ['event_id', 'images', 'videos', 'id']
+        extra_kwargs = {'event_id': {'write_only': True}}
