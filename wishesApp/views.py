@@ -12,11 +12,10 @@ from eventApp.utils import delete_image_s3
 from userPolls.models import CustomUser
 from wishesApp.serializers.wishesSerializer import CreateWishesSerializer, WishesSerializer
 from wishesApp.models import Wishes
-# Create your views here.
 
 
 class WishesAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def post(self, request):
         serializer = CreateWishesSerializer(data=request.data, context={'request': request})
@@ -28,7 +27,7 @@ class WishesAPIView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
-        serializer = WishesSerializer(data=request.GET)
+        serializer = WishesSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
             event = Event.objects.get(eventid=request.GET.get("event_id"))
             try:
