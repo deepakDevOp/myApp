@@ -4,10 +4,12 @@ from eventApp.serializers.validators import PhoneNumberValidatorMixin, UsernameV
 
 
 class PhoneFilteredMyEventListSerializer(PhoneNumberValidatorMixin, serializers.ModelSerializer):
+    receiver_phone_number = serializers.CharField()
 
     class Meta:
         model = Event
-        fields = ('host_name', 'eventid', "event_name", "event_description", "image_urls", "receiver_name", "receiver_phone_number")
+        fields = ('host_name', 'eventid', "event_name", "event_description", "image_urls",
+                  "receiver_name", "receiver_phone_number")
         extra_kwargs = {'receiver_phone_number': {'write_only': True}}
 
 

@@ -5,8 +5,8 @@ from eventApp.models import Event
 # Create your models here.
 class Wishes(models.Model):
     event = models.OneToOneField(Event, to_field='eventid', on_delete=models.CASCADE, related_name='wishes')
-    images = models.JSONField(default=list)  # List of image URLs
-    videos = models.JSONField(default=list)  # List of video URLs
+    image_urls = models.JSONField(default=list)  # List of image URLs
+    video_urls = models.JSONField(default=list)  # List of video URLs
 
 
 class Timeline(models.Model):
