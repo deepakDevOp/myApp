@@ -19,7 +19,7 @@ class EventValidatorMixin:
 
 
 class PhoneNumberValidatorMixin:
-    def validate(self, data):
+    def validate_receiver_phone_number(self, data):
         phone_number = data.get("receiver_phone_number")
         try:
             event_list = Event.objects.get(receiver_phone_number=phone_number)
