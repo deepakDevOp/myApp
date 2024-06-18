@@ -21,4 +21,6 @@ class CustomUser(AbstractUser):
     is_active = models.BooleanField(default=True)
     profile_pic_url = models.CharField(max_length=200, blank=True)
     fcm_token = models.CharField(max_length=200, blank=True, default="")
+    uid = models.CharField(max_length=200, blank=False, default="")
+    first_time_login = models.BooleanField(blank=False, default=False)
 
