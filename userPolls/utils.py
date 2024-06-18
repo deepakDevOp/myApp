@@ -4,7 +4,6 @@ from datetime import timedelta
 from oauth2_provider.models import AccessToken
 import secrets
 import string
-from userPolls.models import CustomUser
 from django.core.mail import send_mail
 
 
@@ -41,13 +40,11 @@ def generate_alphanumeric_otp(length=6):
     return otp
 
 
-def create_save_username(data=None):
-    user = CustomUser.objects.get(phone_number=data.get('phone_number'))
+def create_save_username(user):
     username = str(user.id) + '_' + user.phone_number
     user.username = username
     user.save()
-    data['username'] = username
-    return data
+    return user
 
 
 def send_otp(otp=None, email=None):

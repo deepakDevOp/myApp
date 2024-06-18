@@ -7,6 +7,7 @@ import string
 import boto3
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
+from userPolls.utils import *
 
 
 
@@ -92,7 +93,7 @@ class PhoneNumberValidatorMixin:
         try:
             user = CustomUser.objects.get(phone_number=data)
         except CustomUser.DoesNotExist:
-            if self.__class__.__name__ != "RegisterUserSerializer":
+            if self.__class__.__name__ not in ("RegisterUserSerializer", "LoginSerializer"):
                 raise serializers.ValidationError(f'No user with this phone number {data} exists')
             else:
                 return data
@@ -108,27 +109,11 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         exclude = ("id",)
         extra_kwargs = {'password': {'write_only': True},
-                        'username': {'write_only': True},
                         'id': {'write_only': True},
                         'is_superuser': {'write_only': True},
                         'is_staff': {'write_only': True},
                         'groups': {'write_only': True},
                         'user_permissions': {'write_only': True}}
-
-
-class RegisterUserSerializer(UsernameValidatorMixin,
-                             PasswordValidatorMixin, PhoneNumberValidatorMixin,
-                             serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ("password", "username", "phone_number")
-        extra_kwargs = {'password': {'write_only': True}}
-
-
-    def create(self, validated_data):
-        # Hash the password before saving the user
-        validated_data['password'] = make_password(validated_data['password'], salt="my_known_salt")
-        return super().create(validated_data)
 
 
 class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
@@ -156,7 +141,6 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
                                                 file_name=file_name)
             validated_data.pop("profile_picture")
             validated_data["profile_pic_url"] = image_url
-        print(f"Validated data = {validated_data}")
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
@@ -176,30 +160,38 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
         return data
 
 
-class LoginSerializer(PhoneNumberValidatorMixin, AuthenticationValidatorMixin,
-                      serializers.Serializer):
-    phone_number = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
+    phone_number = serializers.CharField(required=True)
+    uid = serializers.CharField(required=True)
+
+    def authenticate_user(self, user, phone_number, uid):
+        if user.uid == uid:
+            return
+        raise serializers.ValidationError({"error": "Incorrect uid"})
+
+    def create(self, validated_data):
+        phone_number = validated_data.get("phone_number")
+        uid = validated_data.get("uid", "")
+        try:
+            user = CustomUser.objects.get(phone_number=phone_number)
+        except CustomUser.DoesNotExist:
+            user = CustomUser.objects.create(phone_number=phone_number, uid=uid)
+            generate_oauth_token_save_in_db(user)
+            user = create_save_username(user)
+            user.first_time_login = True
+            user.save()
+            return user
+        else:
+            self.authenticate_user(user, phone_number, uid)
+            token_obj = update_access_token(user=user)
+            user.last_login = timezone.now()
+            user.first_time_login = False
+            user.save()
+            return user
+
 
 
 class LoginResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['username', 'phone_number', 'profile_pic_url', 'first_name']
-
-
-class PasswordResetConfirmSerializer(PasswordValidatorMixin, serializers.Serializer):
-    otp = serializers.CharField(max_length=6)
-    password = serializers.CharField(max_length=128)
-
-
-class PasswordResetRequestSerializer(EmailValidatorMixin, serializers.Serializer):
-    email = serializers.EmailField()
-
-
-
-
-
-
-
-
