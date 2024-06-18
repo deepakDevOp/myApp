@@ -177,6 +177,7 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
         except CustomUser.DoesNotExist:
             user = CustomUser.objects.create(phone_number=phone_number, uid=uid)
             generate_oauth_token_save_in_db(user)
+            user.last_login = timezone.now()
             user = create_save_username(user)
             user.first_time_login = True
             user.save()
