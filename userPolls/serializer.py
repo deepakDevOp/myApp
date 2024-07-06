@@ -115,39 +115,21 @@ class CustomUserSerializer(serializers.ModelSerializer):
                         'groups': {'write_only': True},
                         'user_permissions': {'write_only': True}}
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        profile_pic_id = ret.get('profile_pic')
+        if profile_pic_id:
+            media_file = MediaFile.objects.get(file_id=profile_pic_id)
+            ret['profile_pic'] = media_file.file_url
+        return ret
+
 
 class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
                        PhoneNumberValidatorMixin, serializers.ModelSerializer):
-    profile_picture = serializers.ImageField(allow_null=True)
+    first_name = serializers.CharField(required=True)
     class Meta:
         model = CustomUser
         fields = "__all__"
-        extra_kwargs = {"profile_picture": {'write_only': True}}
-
-
-    def upload_image_to_s3(self, image_data, file_name):
-        key = f"profile_pictures/{file_name}.png"
-        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=image_data)
-        image_url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}'
-        return image_url
-
-    def update(self, instance, validated_data):
-        profile_picture = validated_data.get("profile_picture", None)
-        if profile_picture:
-            file_name = f"{instance.username}_pic"
-            image_url = self.upload_image_to_s3(image_data=validated_data.get("profile_picture"),
-                                                file_name=file_name)
-            validated_data.pop("profile_picture")
-            validated_data["profile_pic_url"] = image_url
-        # Update the remaining fields
-        for key, value in validated_data.items():
-            setattr(instance, key, value)
-
-        # Save the instance
-        instance.save()
-        return instance
 
     def validate(self, data):
         # Check if this is a partial update
@@ -157,12 +139,19 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required.")
+            profile_pic_id = data.get("profile_pic")
+            username = MediaFile.objects.get(file_id=profile_pic_id)
+            if self.instance.username != username:
+                raise serializers.ValidationError("Provided profile pic id does "
+                                                  "not belong to this user.")
         return data
+
 
 
 class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
     phone_number = serializers.CharField(required=True)
     uid = serializers.CharField(required=True)
+    is_guest = serializers.BooleanField(required=True)
 
     def authenticate_user(self, user, phone_number, uid):
         if user.uid == uid:
@@ -172,21 +161,29 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
     def create(self, validated_data):
         phone_number = validated_data.get("phone_number")
         uid = validated_data.get("uid", "")
+        is_guest = validated_data.get("is_guest", "")
         try:
             user = CustomUser.objects.get(phone_number=phone_number)
         except CustomUser.DoesNotExist:
             user = CustomUser.objects.create(phone_number=phone_number, uid=uid)
             generate_oauth_token_save_in_db(user)
+            if is_guest:
+                user.user_created_via_guest = True
+            else:
+                user.user_created_via_guest = False
+            user.is_first_time_user = True
             user.last_login = timezone.now()
             user = create_save_username(user)
-            user.first_time_login = True
             user.save()
             return user
         else:
             self.authenticate_user(user, phone_number, uid)
             token_obj = update_access_token(user=user)
+            if not is_guest and user.user_created_via_guest:
+                user.user_created_via_guest = False
+            elif not is_guest and not user.user_created_via_guest:
+                user.is_first_time_user = False
             user.last_login = timezone.now()
-            user.first_time_login = False
             user.save()
             return user
 
@@ -195,4 +192,37 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
 class LoginResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['username', 'phone_number', 'profile_pic_url', 'first_name']
+        fields = ['username', 'phone_number', 'profile_pic', 'first_name']
+
+
+class MediaFileSerializer(serializers.ModelSerializer):
+    file = serializers.ImageField(required=True, write_only=True)
+
+    class Meta:
+        model = MediaFile
+        fields = ['file_url', 'file_id', 'upload_time', 'uploaded_by',
+                  'file_type', 'file_ext', 'file']
+        extra_kwargs = {'id': {'write_only': True}}
+
+
+    def upload_image_to_s3(self, image_data, file_name):
+        key = f"{file_name}.png"
+        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=image_data)
+        image_url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}'
+        return image_url
+
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        file = request.FILES.get('file')
+        file_id = generate_timestamp()
+        file_url = self.upload_image_to_s3(image_data=file, file_name=file_id)
+        return MediaFile.objects.create(
+            file_url=file_url,
+            uploaded_by=request.user.username,
+            file_id=file_id,
+            file_ext=".png",
+            file_type="image",
+        )

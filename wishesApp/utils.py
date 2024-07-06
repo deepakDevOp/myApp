@@ -19,15 +19,33 @@ def upload_object_to_s3(obj_data, event_id):
     return image_url, file_name
 
 
-def delete_object_s3(folder_name=None, remove_ids=None, eventid=None):
+def update_instance_urls(image_urls=None, video_urls=None, remove_ids=None):
+    updated_image_urls = image_urls[:]
+    updated_video_urls = video_urls[:]
+    for remove_id in remove_ids:
+        for obj in image_urls if "image" in remove_id else video_urls:
+            if remove_id in list(obj.values()):
+                updated_image_urls.remove(obj) if "image" in remove_id else updated_video_urls.remove(obj)
+            else:
+                return False
+        return updated_video_urls, updated_image_urls
+
+
+def delete_object_s3(folder_name=None, remove_ids=None, eventid=None,
+                     image_urls=None, video_urls=None):
     if remove_ids:
         s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                           aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        for object_id in remove_ids:
-            postfix = ".png" if "image" in object_id else ".mp4"
-            s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                             Key="events/"+eventid+"/wishes/"+object_id+postfix)
-        return
+        res = update_instance_urls(image_urls=image_urls, video_urls=video_urls,
+                                   remove_ids=remove_ids)
+        if res:
+            for object_id in remove_ids:
+                postfix = ".png" if "image" in object_id else ".mp4"
+                s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                                 Key="events/"+eventid+"/wishes/"+object_id+postfix)
+            return res
+        else:
+            return False
     # Ensure folder_name ends with a slash
     if not folder_name.endswith('/'):
         folder_name += '/'

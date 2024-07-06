@@ -3,10 +3,7 @@ from django.db import models
 
 class EventList(models.Model):
 
-    event_name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.event_name
+    event_name = models.JSONField(default=list)
 
 
 class Event(models.Model):
@@ -20,5 +17,5 @@ class Event(models.Model):
     receiver_phone_number = models.CharField(max_length=10, blank=False)
     username = models.CharField(max_length=150, blank=True, default="")
     receiver_name = models.CharField(max_length=150, blank=False)
-    image_urls = models.JSONField(default=list)
+    image_urls = models.JSONField(default=list, blank=True)
     global_event = models.BooleanField(blank=True, default=False)

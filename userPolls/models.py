@@ -18,8 +18,19 @@ class CustomUser(AbstractUser):
     date_joined = models.DateTimeField(auto_now_add=True)
     marital_status = models.CharField(max_length=20, blank=True)
     is_active = models.BooleanField(default=True)
-    profile_pic_url = models.CharField(max_length=200, blank=True)
+    profile_pic = models.CharField(max_length=200, blank=True)
     fcm_token = models.CharField(max_length=200, blank=True, default="")
     uid = models.CharField(max_length=200, blank=False, default="")
-    first_time_login = models.BooleanField(blank=False, default=False)
+    is_first_time_user = models.BooleanField(blank=False, default=True)
+    user_created_via_guest = models.BooleanField(blank=False, default=False)
+
+
+class MediaFile(models.Model):
+    file_url = models.CharField(max_length=100, blank=True)
+    file_id = models.CharField(max_length=100, blank=True)
+    upload_time = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.CharField(max_length=200, blank=True)
+    file_type = models.CharField(max_length=100, blank=True)
+    file_ext = models.CharField(max_length=100, blank=True)
+
 

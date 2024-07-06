@@ -5,5 +5,7 @@ urlpatterns = [
     path('signup/', SignupAPIView.as_view(), name='SignupAPIView'),
     path('login/', LoginAPIView.as_view(), name='LoginAPIView'),
     path('delete_user/', DeleteUserAPIView.as_view(), name='DeleteUserAPIView'),
-    path('get_user/', GetProfileAPIView.as_view(), name='GetProfileAPIView')
+    path('get_user/', GetProfileAPIView.as_view(), name='GetProfileAPIView'),
+    path('upload_file/', MediaFileUploadView.as_view(), name='MediaFileUploadView'),
+    path('delete_file/', MediaFileDeleteView.as_view(), name='MediaFileDeleteView'),
 ]
