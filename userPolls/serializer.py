@@ -139,11 +139,11 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required.")
-            profile_pic_id = data.get("profile_pic")
-            username = MediaFile.objects.get(file_id=profile_pic_id)
-            if self.instance.username != username:
-                raise serializers.ValidationError("Provided profile pic id does "
-                                                  "not belong to this user.")
+            # profile_pic_id = data.get("profile_pic")
+            # username = MediaFile.objects.get(file_id=profile_pic_id)
+            # if self.instance.username != username:
+            #     raise serializers.ValidationError("Provided profile pic id does "
+            #                                       "not belong to this user.")
         return data
 
 
