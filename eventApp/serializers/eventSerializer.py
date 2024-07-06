@@ -21,7 +21,7 @@ class EventSerializer(serializers.ModelSerializer):
             for image_id in image_ids:
                 media_file = MediaFile.objects.get(file_id=image_id)
                 image_urls.append(media_file.file_url)
-        media_file = MediaFile.objects.get(file_id=image_id)
+        media_file = MediaFile.objects.get(file_id=cover_pic_id)
         ret['cover_pic'] = media_file.file_url
         ret['image_urls'] = image_urls
         return ret
