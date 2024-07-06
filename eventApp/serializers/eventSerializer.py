@@ -15,11 +15,14 @@ class EventSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         image_ids = ret.get('image_urls', [])
+        cover_pic_id = ret.get('cover_pic', "")
         image_urls = []
         if image_ids:
             for image_id in image_ids:
                 media_file = MediaFile.objects.get(file_id=image_id)
                 image_urls.append(media_file.file_url)
+        media_file = MediaFile.objects.get(file_id=image_id)
+        ret['cover_pic'] = media_file.file_url
         ret['image_urls'] = image_urls
         return ret
 
