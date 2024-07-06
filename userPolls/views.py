@@ -117,29 +117,35 @@ class MediaFileDeleteView(APIView):
     permission_classes = [CustomIsAuthenticated]
 
     def delete(self, request):
-        file_id = request.GET.get("fileId", None)
+        file_url = request.GET.get("file_url", "")
         username = request.user.username
-        if not file_id:
-            return Response({"error": "File id is missing."},
+        if not file_url:
+            return Response({"error": "File url is missing."},
                             status=status.HTTP_400_BAD_REQUEST)
         try:
-            media_file = MediaFile.objects.get(file_id=file_id)
+            media_file = MediaFile.objects.get(file_url=file_url)
         except MediaFile.DoesNotExist:
-            return Response({"error": "invalid object id."},
+            return Response({"error": "invalid object url."},
                             status=status.HTTP_400_BAD_REQUEST)
         else:
             if username != media_file.uploaded_by:
-                return Response({"error": "Authentication failed! Permission denied."},
+                return Response({"error": "Authentication failed! Permission denied. "
+                                          "This user does not have permissions to delete the "
+                                          "given file."},
                                 status=status.HTTP_400_BAD_REQUEST)
-            self.delete_obj_s3(obj_name=file_id, file_type=media_file.file_type,
+            print(f"url = {media_file.file_url}")
+            obj_name = media_file.file_url.split("/")[-1].split(".")[-2]
+            print(f"obj name = {obj_name}")
+            self.delete_obj_s3(obj_name=obj_name, file_type=media_file.file_type,
                                file_ext=media_file.file_ext)
-            MediaFile.objects.filter(file_id=file_id).delete()
+            MediaFile.objects.filter(file_id=obj_name).delete()
             return Response({"message": "File deleted successfully."},
                             status=status.HTTP_200_OK)
 
     def delete_obj_s3(self, obj_name=None, file_type=None, file_ext=None):
         s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                           aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        print(f"key = {obj_name + '.png'}")
         s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
                          Key=obj_name + ".png" if file_type == "image" else file_ext)
 
