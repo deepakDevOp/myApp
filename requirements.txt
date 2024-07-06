@@ -20,3 +20,4 @@ python-dotenv==1.0.1
 mysqlclient
 boto3==1.34.58
 django-storages==1.14.2
+drf_yasg
