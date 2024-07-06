@@ -1,15 +1,17 @@
-from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from .serializer import (SignupSerializer, LoginSerializer, CustomUserSerializer,
-                         LoginResponseSerializer)
-from userPolls.models import CustomUser
+                         LoginResponseSerializer, MediaFileSerializer)
+from userPolls.models import CustomUser, MediaFile
 from .utils import extract_error_message
 from django.shortcuts import render
 from oauth2_provider.models import AccessToken
 from userPolls.authentication import CustomIsAuthenticated
+from rest_framework.generics import GenericAPIView
+import boto3
+from django.conf import settings
 
 
 def home(request):
@@ -17,7 +19,8 @@ def home(request):
     return render(request, 'homepage.html')
 
 
-class SignupAPIView(APIView):
+class SignupAPIView(GenericAPIView):
+    serializer_class = SignupSerializer
     permission_classes = [CustomIsAuthenticated]
 
     def patch(self, request):
@@ -33,7 +36,8 @@ class SignupAPIView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
-class LoginAPIView(APIView):
+class LoginAPIView(GenericAPIView):
+    serializer_class = LoginSerializer
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -45,8 +49,14 @@ class LoginAPIView(APIView):
             response_data = LoginResponseSerializer(user).data
             token_obj = AccessToken.objects.get(user_id=user.id)
             response_data['access_token'] = token_obj.token
-            return Response({'message': 'Login Successful' if user.first_time_login == False\
-                            else 'User Registered Successfully',
+            if serializer_data.get("is_guest"):
+                message = "Guest user logged in Successfully."
+            else:
+                if user.is_first_time_user:
+                    message = "User registered successfully."
+                else:
+                    message = "User logged in successfully."
+            return Response({'message': message,
                              'data': response_data}, status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -83,8 +93,54 @@ class GetProfileAPIView(APIView):
 
             serializer = CustomUserSerializer(user)
             return Response({"message": "User data found",
-                             "data": extract_error_message(serializer.data)},
+                             "data": serializer.data},
                             status=status.HTTP_200_OK)
         except AccessToken.DoesNotExist:
             return Response({"error": "Token does not exist or has expired."},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class MediaFileUploadView(APIView):
+    permission_classes = [CustomIsAuthenticated]
+
+    def post(self, request):
+        serializer = MediaFileSerializer(context={'request': request}, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "file uploaded successfully.",
+                             "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
+class MediaFileDeleteView(APIView):
+    permission_classes = [CustomIsAuthenticated]
+
+    def delete(self, request):
+        file_id = request.GET.get("fileId", None)
+        username = request.user.username
+        if not file_id:
+            return Response({"error": "File id is missing."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            media_file = MediaFile.objects.get(file_id=file_id)
+        except MediaFile.DoesNotExist:
+            return Response({"error": "invalid object id."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if username != media_file.uploaded_by:
+                return Response({"error": "Authentication failed! Permission denied."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            self.delete_obj_s3(obj_name=file_id, file_type=media_file.file_type,
+                               file_ext=media_file.file_ext)
+            MediaFile.objects.filter(file_id=file_id).delete()
+            return Response({"message": "File deleted successfully."},
+                            status=status.HTTP_200_OK)
+
+    def delete_obj_s3(self, obj_name=None, file_type=None, file_ext=None):
+        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                         Key=obj_name + ".png" if file_type == "image" else file_ext)
+
+

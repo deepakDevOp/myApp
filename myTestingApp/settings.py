@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ["heartehomies.com", "www.heartehomies.com", "43.205.171.25", "h
 # Application definition
 
 INSTALLED_APPS = [
+    'drf_yasg',
     'oauth2_provider',
     'rest_framework',
     'userPolls.apps.UserpollsConfig',
@@ -184,4 +185,14 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Define the duration of session cookies in seconds
 SESSION_COOKIE_AGE = 600
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'api_key': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization'
+        }
+    },
+}
 

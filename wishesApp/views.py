@@ -1,15 +1,8 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from rest_framework import status
-from eventApp.serializers.eventListSerializers import *
-from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
-from oauth2_provider.models import AccessToken
-from eventApp.utils import delete_image_s3
-from userPolls.models import CustomUser
 from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, WishesSerializer,
                                                     UpdateWishesSerializer)
 from wishesApp.models import Wishes

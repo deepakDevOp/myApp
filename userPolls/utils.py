@@ -5,6 +5,7 @@ from oauth2_provider.models import AccessToken
 import secrets
 import string
 from django.core.mail import send_mail
+from datetime import datetime
 
 
 def update_access_token(user=None):
@@ -67,3 +68,9 @@ def extract_error_message(error):
             updated_errors[key] = value[0]
         return updated_errors
     return error
+
+
+def generate_timestamp():
+    now = datetime.now()
+    unix_timestamp_milliseconds = int(now.timestamp() * 100000000)
+    return str(unix_timestamp_milliseconds)

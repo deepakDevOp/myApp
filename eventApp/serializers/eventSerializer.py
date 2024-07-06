@@ -1,13 +1,27 @@
 from rest_framework import serializers
 from eventApp.models import Event
 from .validators import EventValidatorMixin
-from eventApp.utils import upload_image_to_s3,delete_image_s3
+from eventApp.utils import delete_image_s3
+from userPolls.models import MediaFile
 
 
 class EventSerializer(serializers.ModelSerializer):
+    image_urls = serializers.ListField(child=serializers.CharField(), required=False)
+
     class Meta:
         model = Event
-        fields = '__all__'
+        exclude = ("id",)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        image_ids = ret.get('image_urls', [])
+        image_urls = []
+        if image_ids:
+            for image_id in image_ids:
+                media_file = MediaFile.objects.get(file_id=image_id)
+                image_urls.append(media_file.file_url)
+        ret['image_urls'] = image_urls
+        return ret
 
 
 class GetEventSerializer(EventValidatorMixin, serializers.Serializer):
@@ -20,40 +34,41 @@ class CreateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = '__all__'
-        extra_kwargs = {'pic': {'write_only': True}}
 
 
 class UpdateEventSerializer(EventValidatorMixin, serializers.ModelSerializer):
     eventid = serializers.CharField()
-    pic = serializers.ListField(
-        child=serializers.ImageField(),
-        allow_empty=True
-    )
 
     class Meta:
         model = Event
-        fields = '__all__'
+        exclude = ("id",)
         extra_kwargs = {'pic': {'write_only': True}}
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        image_ids = ret.get('image_urls', [])
+        image_urls = []
+        if image_ids:
+            for image_id in image_ids:
+                media_file = MediaFile.objects.get(file_id=image_id)
+                image_urls.append(media_file.file_url)
+        ret['image_urls'] = image_urls
+        return ret
 
     def update(self, instance, validated_data):
         request = self.context.get('request')
-        pictures = request.FILES.getlist("pic", None)
         updated_image_urls = instance.image_urls
-        for image in pictures:
-            eventid = validated_data.get("eventid")
-            image_url, file_name = upload_image_to_s3(image_data=image, event_id=eventid)
-            image_data = {"image_id": file_name,
-                          "image_url": image_url}
-            updated_image_urls.append(image_data)
-        remove_ids = request.GET.get("remove_ids", None)
+        remove_ids = request.GET.get("remove_ids", [])
+        invalid_remove_ids = []
         if remove_ids:
             remove_ids = remove_ids.split(",")
-            delete_image_s3(remove_ids=remove_ids, eventid=request.data.get("eventid"))
-            for image_id in remove_ids:
-                for img_obj_index in range(len(updated_image_urls)):
-                    if image_id in updated_image_urls[img_obj_index].values():
-                        del updated_image_urls[img_obj_index]
-                        break
+            for remove_id in remove_ids:
+                if remove_id not in updated_image_urls:
+                    invalid_remove_ids.append(remove_id)
+                    continue
+                delete_image_s3(remove_ids=remove_ids, eventid=request.data.get("eventid"))
+                updated_image_urls.remove(remove_id)
+
         # Update the remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
