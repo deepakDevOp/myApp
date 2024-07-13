@@ -58,7 +58,7 @@ class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = Wishes
         fields = ['event_id', 'image_urls', 'video_urls', 'sender_name',
-                  'sender_profile_image', 'sender_message']
+                  'sender_profile_image', 'sender_message', 'id']
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -79,6 +79,7 @@ class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
         ret['image_urls'] = image_urls
         ret['video_urls'] = video_urls
         ret['sender_profile_image'] = media_file.file_url
+        ret.pop("event_id")
         return ret
 
 
