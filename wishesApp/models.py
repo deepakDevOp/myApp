@@ -4,7 +4,11 @@ from eventApp.models import Event
 
 # Create your models here.
 class Wishes(models.Model):
-    event = models.OneToOneField(Event, to_field='eventid', on_delete=models.CASCADE, related_name='wishes')
+    event = models.ForeignKey(Event, to_field='eventid', on_delete=models.CASCADE,
+                              related_name='wishes')
+    sender_name = models.CharField(max_length=100, default="", blank=True)
+    sender_profile_image = models.CharField(max_length=100, default="", blank=True)
+    sender_message = models.TextField(default="", blank=True)
     image_urls = models.JSONField(default=list)  # List of image URLs
     video_urls = models.JSONField(default=list)  # List of video URLs
 
