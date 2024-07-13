@@ -9,15 +9,21 @@ from userPolls.models import MediaFile
 
 
 class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
-    event_id = serializers.CharField(allow_blank=False)
-    images = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
-    videos = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
+    event_id = serializers.CharField(allow_blank=False, required=True)
+    image_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
+    video_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
 
     def create(self, validated_data):
+        print(f"validated data = {self.validated_data}")
         request = self.context.get("request")
         event_id = validated_data.get('event_id')
-        videos = validated_data.get('videos', [])
+        videos = validated_data.get('video_urls', [])
+        sender_name = request.data.get('sender_name', '')
+        sender_profile_image_id = request.data.get('sender_profile_image')
+        sender_message = request.data.get('sender_message')
+
         updated_videos_data = []
+        print(f"Videos = {videos}")
         for video_url in videos:
             video_id = generate_timestamp()
             updated_videos_data.append(video_id)
@@ -30,17 +36,18 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
                 file_ext=f".{file_ext[-1]}"
             )
         videos = updated_videos_data
-        images = validated_data.get("images", [])
+        images = validated_data.get("image_urls", [])
+        print(f"images = {images}")
         # Create the Wishes instance
         event = Event.objects.get(eventid=event_id)
-        try:
-            wishes = Wishes.objects.create(
+        wishes = Wishes.objects.create(
                 event=event,
                 image_urls=images,
-                video_urls=videos
-            )
-        except IntegrityError:
-            raise serializers.ValidationError({"error": "Wishes for this event already exist."})
+                video_urls=videos,
+                sender_name=sender_name,
+                sender_profile_image=sender_profile_image_id,
+                sender_message=sender_message
+        )
 
         return wishes
 
@@ -50,7 +57,29 @@ class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Wishes
-        fields = ['event_id', 'image_urls', 'video_urls', 'id']
+        fields = ['event_id', 'image_urls', 'video_urls', 'sender_name',
+                  'sender_profile_image', 'sender_message']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        image_ids = ret.get('image_urls', [])
+        video_ids = ret.get('video_urls', [])
+        sender_profile_image_id = ret.get('sender_profile_image', "")
+        image_urls = []
+        video_urls = []
+        if image_ids:
+            for image_id in image_ids:
+                media_file = MediaFile.objects.get(file_id=image_id)
+                image_urls.append(media_file.file_url)
+        if video_ids:
+            for video_id in video_ids:
+                media_file = MediaFile.objects.get(file_id=video_id)
+                video_urls.append(media_file.file_url)
+        media_file = MediaFile.objects.get(file_id=sender_profile_image_id)
+        ret['image_urls'] = image_urls
+        ret['video_urls'] = video_urls
+        ret['sender_profile_image'] = media_file.file_url
+        return ret
 
 
 class UpdateWishesSerializer(EventValidatorMixin, serializers.ModelSerializer):

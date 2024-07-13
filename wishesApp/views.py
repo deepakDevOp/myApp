@@ -26,12 +26,12 @@ class WishesAPIView(APIView):
         if serializer.is_valid():
             event = Event.objects.get(eventid=request.GET.get("event_id"))
             try:
-                wishes = Wishes.objects.get(event=event)
+                wishes = Wishes.objects.filter(event=event)
             except Wishes.DoesNotExist:
                 return Response({"error": "No wishes found for this event."},
                                 status=status.HTTP_404_NOT_FOUND)
             return Response({"message": "Wishes found successfully.",
-                             "data": WishesSerializer(instance=wishes).data},
+                             "data": WishesSerializer(instance=wishes, many=True).data},
                             status=status.HTTP_200_OK)
         return Response({"error": serializer.errors},
                         status=status.HTTP_400_BAD_REQUEST)
