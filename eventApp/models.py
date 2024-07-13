@@ -19,4 +19,6 @@ class Event(models.Model):
     receiver_name = models.CharField(max_length=150, blank=False)
     image_urls = models.JSONField(default=list, blank=True)
     global_event = models.BooleanField(blank=True, default=False)
-    cover_pic = models.CharField(max_length=500, blank=True, default="")
+    cover_image = models.CharField(max_length=500, blank=True, default="")
+    splash_background_image = models.CharField(max_length=500, blank=True, default="")
+    splash_display_image = models.CharField(max_length=500, blank=True, default="")

@@ -16,6 +16,8 @@ class EventSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         image_ids = ret.get('image_urls', [])
         cover_pic_id = ret.get('cover_pic', "")
+        splash_background_image_id = ret.get('splash_background_image', "")
+        splash_display_image_id = ret.get('splash_display_image', "")
         image_urls = []
         if image_ids:
             for image_id in image_ids:
@@ -23,7 +25,12 @@ class EventSerializer(serializers.ModelSerializer):
                 image_urls.append(media_file.file_url)
         media_file = MediaFile.objects.get(file_id=cover_pic_id)
         ret['cover_pic'] = media_file.file_url
+        media_file = MediaFile.objects.get(file_id=splash_background_image_id)
+        ret['splash_background_image'] = media_file.file_url
+        media_file = MediaFile.objects.get(file_id=splash_display_image_id)
+        ret['splash_display_image'] = media_file.file_url
         ret['image_urls'] = image_urls
+
         return ret
 
 
