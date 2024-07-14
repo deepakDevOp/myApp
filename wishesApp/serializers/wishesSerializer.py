@@ -14,7 +14,6 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
     video_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
 
     def create(self, validated_data):
-        print(f"validated data = {self.validated_data}")
         request = self.context.get("request")
         event_id = validated_data.get('event_id')
         videos = validated_data.get('video_urls', [])
@@ -23,7 +22,6 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
         sender_message = request.data.get('sender_message')
 
         updated_videos_data = []
-        print(f"Videos = {videos}")
         for video_url in videos:
             video_id = generate_timestamp()
             updated_videos_data.append(video_id)
@@ -37,7 +35,6 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
             )
         videos = updated_videos_data
         images = validated_data.get("image_urls", [])
-        print(f"images = {images}")
         # Create the Wishes instance
         event = Event.objects.get(eventid=event_id)
         wishes = Wishes.objects.create(

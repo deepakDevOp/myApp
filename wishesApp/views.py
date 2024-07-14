@@ -5,7 +5,8 @@ from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
 from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, WishesSerializer,
                                                     UpdateWishesSerializer)
-from wishesApp.models import Wishes
+from wishesApp.serializers.timelineSerializer import CreateTimelineSerializer, GetTimelineSerializer
+from wishesApp.models import Wishes, Timeline
 from userPolls.utils import extract_error_message
 
 
@@ -57,4 +58,32 @@ class WishesAPIView(APIView):
             return Response({"message": "Wishes updated successfully."},
                             status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
+class TimelineAPIView(APIView):
+    permission_classes = [CustomIsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateTimelineSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Timeline created successfully."},
+                            status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        serializer = GetTimelineSerializer(data=request.GET, context={'request': request})
+        if serializer.is_valid():
+            event = Event.objects.get(eventid=request.GET.get("event_id"))
+            try:
+                timeline = Timeline.objects.filter(event=event)
+            except Wishes.DoesNotExist:
+                return Response({"error": "No timeline found for this event."},
+                                status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Timeline found successfully.",
+                             "data": GetTimelineSerializer(instance=timeline, many=True).data},
+                            status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors},
                         status=status.HTTP_400_BAD_REQUEST)
