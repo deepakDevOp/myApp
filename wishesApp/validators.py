@@ -11,8 +11,8 @@ class EventValidatorMixin:
         except Event.DoesNotExist:
             raise serializers.ValidationError(f"Event - {data.get('event_id')} doest not exist.")
         else:
-            request = self.context['request']
-            if request.user.username != event.username:
-                raise serializers.ValidationError(f"Event - {event.eventid} is not associated with "
-                                                  f"this user.")
+            # request = self.context['request']
+            # if request.user.username != event.username:
+            #     raise serializers.ValidationError(f"Event - {event.eventid} is not associated with "
+            #                                       f"this user.")
             return data
