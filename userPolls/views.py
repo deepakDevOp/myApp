@@ -1,17 +1,32 @@
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from .serializer import (SignupSerializer, LoginSerializer, CustomUserSerializer,
-                         LoginResponseSerializer, MediaFileSerializer)
-from userPolls.models import CustomUser, MediaFile
+                         LoginResponseSerializer, MediaFileSerializer, DeleteMediaFileSerializer)
+from userPolls.models import CustomUser
 from .utils import extract_error_message
 from django.shortcuts import render
 from oauth2_provider.models import AccessToken
 from userPolls.authentication import CustomIsAuthenticated
 from rest_framework.generics import GenericAPIView
-import boto3
-from django.conf import settings
+
+serializer_error_schema = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'file_url': openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Items(type=openapi.TYPE_STRING),
+            description='List of error messages for the file_url field'
+        ),
+        'detail': openapi.Schema(
+            type=openapi.TYPE_STRING,
+            description='Detailed error message'
+        )
+    }
+)
 
 
 def home(request):
@@ -80,11 +95,8 @@ class GetProfileAPIView(APIView):
     permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
-        auth_header = request.headers.get('Authorization')
-        token = auth_header.split(' ')[1]
         try:
-            access_token = AccessToken.objects.get(token=token)
-            user_id = access_token.user_id
+            user_id = request.user.id
             user = CustomUser.objects.get(id=user_id)
             if not user.is_active:
                 return Response({"error": f'User - {user.username} has been deactivated, please change your '
@@ -95,8 +107,8 @@ class GetProfileAPIView(APIView):
             return Response({"message": "User data found",
                              "data": serializer.data},
                             status=status.HTTP_200_OK)
-        except AccessToken.DoesNotExist:
-            return Response({"error": "Token does not exist or has expired."},
+        except CustomUser.DoesNotExist:
+            return Response({"error": "This user does not exist"},
                             status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -113,40 +125,26 @@ class MediaFileUploadView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
-class MediaFileDeleteView(APIView):
+class MediaFileDeleteView(GenericAPIView):
     permission_classes = [CustomIsAuthenticated]
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('file_url', openapi.IN_QUERY, description="URL of the file to delete",
+                              type=openapi.TYPE_STRING)
+        ],
+        responses={
+            204: openapi.Response(description='Media file deleted successfully'),
+            400: openapi.Response(description='Bad Request', schema=serializer_error_schema)
+        }
+    )
     def delete(self, request):
-        file_url = request.GET.get("file_url", "")
-        username = request.user.username
-        if not file_url:
-            return Response({"error": "File url is missing."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        try:
-            media_file = MediaFile.objects.get(file_url=file_url)
-        except MediaFile.DoesNotExist:
-            return Response({"error": "invalid object url."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        else:
-            if username != media_file.uploaded_by:
-                return Response({"error": "Authentication failed! Permission denied. "
-                                          "This user does not have permissions to delete the "
-                                          "given file."},
-                                status=status.HTTP_400_BAD_REQUEST)
-            print(f"url = {media_file.file_url}")
-            obj_name = media_file.file_url.split("/")[-1].split(".")[-2]
-            print(f"obj name = {obj_name}")
-            self.delete_obj_s3(obj_name=obj_name, file_type=media_file.file_type,
-                               file_ext=media_file.file_ext)
-            MediaFile.objects.filter(file_id=obj_name).delete()
+        serializer = DeleteMediaFileSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.perform_delete()  # Call the delete method here
             return Response({"message": "File deleted successfully."},
                             status=status.HTTP_200_OK)
-
-    def delete_obj_s3(self, obj_name=None, file_type=None, file_ext=None):
-        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        print(f"key = {obj_name + '.png'}")
-        s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                         Key=obj_name + ".png" if file_type == "image" else file_ext)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
