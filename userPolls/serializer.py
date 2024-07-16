@@ -8,6 +8,26 @@ import boto3
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from userPolls.utils import *
+from drf_yasg import openapi
+
+
+class CustomModelSerializer(serializers.ModelSerializer):
+    def to_internal_value(self, data):
+        # Replace null values with default values
+
+        for field in self.fields:
+            if field not in data:
+                continue
+            if data[field] is None:
+                if isinstance(self.fields[field], serializers.CharField):
+                    data[field] = ""
+                elif isinstance(self.fields[field], serializers.BooleanField):
+                    data[field] = False
+                elif isinstance(self.fields[field], serializers.ListField):
+                    data[field] = []
+                elif isinstance(self.fields[field], serializers.JSONField):
+                    data[field] = []
+        return super().to_internal_value(data)
 
 
 
@@ -39,14 +59,7 @@ class EmailValidatorMixin:
                 user = CustomUser.objects.get(email=data.lower())
         except ValidationError:
             raise serializers.ValidationError("Invalid email address")
-        except CustomUser.DoesNotExist:
-            if self.__class__.__name__ == "PasswordResetRequestSerializer":
-                raise serializers.ValidationError(f"User does not exist with {data}")
-            return data
-        else:
-            if  self.__class__.__name__ == "SignupSerializer":
-                raise serializers.ValidationError(f"User already exists with this email.")
-            return data
+        return data
 
 
 class AuthenticationValidatorMixin:
@@ -117,7 +130,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        profile_pic_id = ret.get('profile_pic')
+        profile_pic_id = ret.get('profile_pic', "")
         if profile_pic_id:
             media_file = MediaFile.objects.get(file_id=profile_pic_id)
             ret['profile_pic'] = media_file.file_url
@@ -125,11 +138,25 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
-                       PhoneNumberValidatorMixin, serializers.ModelSerializer):
+                       PhoneNumberValidatorMixin, CustomModelSerializer,
+                       serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
     class Meta:
         model = CustomUser
         fields = "__all__"
+        swagger_schema_fields = openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='First name of the user'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email address of the user'),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING, description='Last name of the user'),
+                'date_of_birth': openapi.Schema(type=openapi.TYPE_STRING, description='DOB of the user'),
+                'address': openapi.Schema(type=openapi.TYPE_STRING, description='Address of the user'),
+                'gender': openapi.Schema(type=openapi.TYPE_STRING, description='Gender of the user'),
+                'marital_status': openapi.Schema(type=openapi.TYPE_STRING, description='Marital status of the user'),
+                'profile_pic': openapi.Schema(type=openapi.TYPE_STRING, description='Pic of the user')
+            }
+        )
 
     def validate(self, data):
         # Check if this is a partial update
@@ -139,11 +166,6 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required.")
-            # profile_pic_id = data.get("profile_pic")
-            # username = MediaFile.objects.get(file_id=profile_pic_id)
-            # if self.instance.username != username:
-            #     raise serializers.ValidationError("Provided profile pic id does "
-            #                                       "not belong to this user.")
         return data
 
 
@@ -226,3 +248,45 @@ class MediaFileSerializer(serializers.ModelSerializer):
             file_ext=".png",
             file_type="image",
         )
+
+
+class DeleteMediaFileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MediaFile
+        fields = "__all__"
+
+    def validate(self, data):
+        request = self.context.get('request')
+        file_url = request.GET.get("file_url", "")
+        if not file_url:
+            raise serializers.ValidationError("file url is required")
+        try:
+            media_file = MediaFile.objects.get(file_url=request.GET.get("file_url"))
+        except MediaFile.DoesNotExist:
+            raise serializers.ValidationError("Invalid file url")
+        else:
+            username = request.user.username
+            media_file = MediaFile.objects.get(file_url=request.GET.get("file_url"))
+            if username != media_file.uploaded_by:
+                raise serializers.ValidationError("Authentication failed! Permission denied. "
+                                      "This user does not have permissions to delete the "
+                                      "given file.")
+        return data
+
+    def perform_delete(self):
+        request = self.context.get("request")
+        file_url = request.GET.get("file_url")
+        file_name = file_url.split("/")[-1].split(".")[-2]
+        media_file = MediaFile.objects.get(file_url=file_url)
+        self.delete_obj_s3(obj_name=file_name, file_type=media_file.file_type,
+                           file_ext=media_file.file_ext)
+        media_file.delete()
+
+    def delete_obj_s3(self, obj_name=None, file_type=None, file_ext=None):
+        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                         Key=obj_name + ".png" if file_type == "image" else file_ext)
+
+

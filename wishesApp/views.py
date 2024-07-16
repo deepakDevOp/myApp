@@ -16,9 +16,9 @@ class WishesAPIView(APIView):
     def post(self, request):
         serializer = CreateWishesSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Wishes created successfully."},
-                            status=status.HTTP_200_OK)
+            wishes = serializer.save()
+            return Response({"message": "Wishes created successfully.",
+                             "data": wishes}, status=status.HTTP_200_OK)
         return Response({"error": serializer.errors},
                         status=status.HTTP_400_BAD_REQUEST)
 
