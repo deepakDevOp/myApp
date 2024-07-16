@@ -18,8 +18,10 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
         event_id = validated_data.get('event_id')
         videos = validated_data.get('video_urls', [])
         sender_name = request.data.get('sender_name', '')
-        sender_profile_image_id = request.data.get('sender_profile_image')
+        sender_profile_image_id = request.data.get('sender_profile_image', "")
         sender_message = request.data.get('sender_message')
+        if not sender_profile_image_id:
+            sender_profile_image_id = sender_name.lower()[0] + "_initial"
 
         updated_videos_data = []
         for video_url in videos:
@@ -46,7 +48,7 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
                 sender_message=sender_message
         )
 
-        return wishes
+        return WishesSerializer(wishes).data
 
 
 class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):

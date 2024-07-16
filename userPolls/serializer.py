@@ -11,6 +11,25 @@ from userPolls.utils import *
 from drf_yasg import openapi
 
 
+class CustomModelSerializer(serializers.ModelSerializer):
+    def to_internal_value(self, data):
+        # Replace null values with default values
+
+        for field in self.fields:
+            if field not in data:
+                continue
+            if data[field] is None:
+                if isinstance(self.fields[field], serializers.CharField):
+                    data[field] = ""
+                elif isinstance(self.fields[field], serializers.BooleanField):
+                    data[field] = False
+                elif isinstance(self.fields[field], serializers.ListField):
+                    data[field] = []
+                elif isinstance(self.fields[field], serializers.JSONField):
+                    data[field] = []
+        return super().to_internal_value(data)
+
+
 
 class UserValidatorMixin:
     def validate_username(self, data):
@@ -119,7 +138,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
-                       PhoneNumberValidatorMixin, serializers.ModelSerializer):
+                       PhoneNumberValidatorMixin, CustomModelSerializer,
+                       serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
     class Meta:
         model = CustomUser

@@ -6,7 +6,7 @@ from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
-from  eventApp.utils import delete_image_s3
+from eventApp.utils import delete_image_s3
 from userPolls.models import CustomUser
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
