@@ -41,16 +41,15 @@ class EventAPIView(APIView):
     permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
-        user = CustomUser.objects.get(id=request.user.id)
         serializer = GetEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
             event = Event.objects.get(eventid=serializer.validated_data.get("eventid"))
-            if event.username == user.username:
+            if event.username == request.user.username:
                 return Response({"message": "Event found",
                                  "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
             else:
                 return Response({"error": f"Event={serializer.data.get('eventid')} does not belong "
-                                          f"to user={user.username}"},
+                                          f"to user={request.user.username}"},
                                 status=status.HTTP_400_BAD_REQUEST)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -131,7 +130,6 @@ class ReceiverGetEventList(APIView):
 
     def get(self, request):
         phone_number = request.GET.get('receiver_phone_number', None)
-
         if phone_number:
             serializer = PhoneFilteredMyEventListSerializer(data=request.GET, many=True)
             if serializer.is_valid():
