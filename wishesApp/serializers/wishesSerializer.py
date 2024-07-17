@@ -3,13 +3,14 @@ from eventApp.models import Event
 from wishesApp.models import Wishes
 from wishesApp.validators import EventValidatorMixin
 from wishesApp.utils import upload_object_to_s3
-from django.db import IntegrityError
 from wishesApp.utils import generate_timestamp, delete_object_s3
 from userPolls.models import MediaFile
 
 
 class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
+    sender_name = serializers.CharField(required=True, allow_blank=False)
+    sender_message = serializers.CharField(required=True)
     image_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
     video_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
 
