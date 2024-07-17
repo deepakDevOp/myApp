@@ -21,6 +21,6 @@ class Timeline(models.Model):
 
 class PersonalWishes(models.Model):
     event = models.ForeignKey(Event, to_field='eventid', on_delete=models.CASCADE, related_name='personal_wishes')
-    wish = models.CharField(max_length=6000, default="", blank=False)
+    personal_wishes = models.JSONField(default=list)
     images = models.JSONField(default=list)  # List of image URLs
     videos = models.JSONField(default=list)  # List of video URLs

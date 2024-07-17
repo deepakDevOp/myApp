@@ -30,15 +30,15 @@ class CreateTimelineSerializer(serializers.Serializer):
                 file_type="video",
                 file_ext=f".{file_ext[-1]}"
             )
-            # Create the Wishes instance
-            event = Event.objects.get(eventid=event_id)
-            timeline = Timeline.objects.create(
-                event=event,
-                images=image_ids,
-                videos=updated_videos_data
-            )
+        # Create the Wishes instance
+        event = Event.objects.get(eventid=event_id)
+        timeline = Timeline.objects.create(
+            event=event,
+            images=image_ids,
+            videos=updated_videos_data
+        )
 
-            return timeline
+        return GetTimelineSerializer(timeline).data
 
 
 class GetTimelineSerializer(serializers.ModelSerializer):
@@ -59,13 +59,9 @@ class GetTimelineSerializer(serializers.ModelSerializer):
                 media_file = MediaFile.objects.get(file_id=image_id)
                 image_urls.append(media_file.file_url)
         if video_ids:
-            print("inside if video ids")
             for video_id in video_ids:
-                print(f"vide_id = {video_id}")
                 media_file = MediaFile.objects.get(file_id=video_id)
                 video_urls.append(media_file.file_url)
-                print(media_file.file_url)
-        print(video_urls)
         ret['images'] = image_urls
         ret['videos'] = video_urls
         return ret
