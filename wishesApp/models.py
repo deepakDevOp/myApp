@@ -14,13 +14,13 @@ class Wishes(models.Model):
 
 
 class Timeline(models.Model):
-    event = models.ForeignKey(Event, to_field='eventid', on_delete=models.CASCADE, related_name='timeline')
+    event = models.OneToOneField(Event, to_field='eventid', on_delete=models.CASCADE, related_name='timeline')
     images = models.JSONField(default=list)  # List of image URLs
     videos = models.JSONField(default=list)  # List of video URLs
 
 
 class PersonalWishes(models.Model):
-    event = models.ForeignKey(Event, to_field='eventid', on_delete=models.CASCADE, related_name='personal_wishes')
+    event = models.OneToOneField(Event, to_field='eventid', on_delete=models.CASCADE, related_name='personal_wishes')
     personal_wishes = models.JSONField(default=list)
     images = models.JSONField(default=list)  # List of image URLs
     videos = models.JSONField(default=list)  # List of video URLs
