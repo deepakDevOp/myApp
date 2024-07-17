@@ -8,6 +8,7 @@ from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, Wish
 from wishesApp.serializers.timelineSerializer import CreateTimelineSerializer, GetTimelineSerializer
 from wishesApp.models import Wishes, Timeline
 from userPolls.utils import extract_error_message
+from rest_framework.exceptions import ValidationError
 
 
 class WishesAPIView(APIView):
@@ -66,13 +67,15 @@ class TimelineAPIView(APIView):
 
     def post(self, request):
         serializer = CreateTimelineSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            data = serializer.save()
-            return Response({"message": "Timeline created successfully.",
-                             "data": data},
-                            status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors},
-                        status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if serializer.is_valid(raise_exception=True):
+                data = serializer.save()
+                return Response({"message": "Timeline created successfully.",
+                                 "data": data}, status=status.HTTP_200_OK)
+            return Response({"error": extract_error_message(serializer.errors)},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
         serializer = GetTimelineSerializer(data=request.GET, context={'request': request})

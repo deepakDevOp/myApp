@@ -30,14 +30,16 @@ class CreateTimelineSerializer(serializers.Serializer):
                 file_type="video",
                 file_ext=f".{file_ext[-1]}"
             )
-        # Create the Wishes instance
-        event = Event.objects.get(eventid=event_id)
-        timeline = Timeline.objects.create(
-            event=event,
-            images=image_ids,
-            videos=updated_videos_data
-        )
-
+        try:
+            # Create the Wishes instance
+            event = Event.objects.get(eventid=event_id)
+            timeline = Timeline.objects.create(
+                event=event,
+                images=image_ids,
+                videos=updated_videos_data
+            )
+        except IntegrityError:
+            raise serializers.ValidationError("Timeline already exists for this event.")
         return GetTimelineSerializer(timeline).data
 
 
