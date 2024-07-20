@@ -6,9 +6,9 @@ from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
-from eventApp.utils import delete_image_s3
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
+from eventApp.utils import perform_delete
 
 
 class AddEventTypeAPIView(GenericAPIView):
@@ -93,17 +93,16 @@ class EventAPIView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
-        serializer = DeleteEventSerializer(data=request.data, context={'request': request})
+        serializer = DeleteEventSerializer(data=request.GET, context={'request': request})
         if serializer.is_valid():
-            event = Event.objects.get(eventid=request.data.get("eventid"))
+            event = Event.objects.get(eventid=request.GET.get("eventid"))
             if request.user.username != event.username:
                 return Response({"error": f"Event-{event.eventid} does not belong "
                                           f"to username-{request.user.username}"},
                                 status=status.HTTP_400_BAD_REQUEST)
-            delete_image_s3(folder_name=event.eventid)
             event.delete()
             return Response({"message": "Event deleted successfully"},
-                            status=status.HTTP_204_NO_CONTENT)
+                            status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 

@@ -2,6 +2,8 @@ import boto3
 from django.conf import settings
 from datetime import datetime
 
+from userPolls.models import MediaFile
+
 
 def isPhoneNumber(param):
     if param.isdigit() and len(param) == 10:
@@ -50,3 +52,21 @@ def delete_image_s3(folder_name=None, remove_ids=None, eventid=None):
             Delete={'Objects': objects_to_delete}
         )
     return
+
+
+def perform_delete(file_id):
+    if "_initial" in file_id:
+        return
+    print(f"file id = {file_id}")
+    media_file = MediaFile.objects.get(file_id=file_id)
+    delete_obj_s3(obj_name=file_id, file_type=media_file.file_type,
+                  file_ext=media_file.file_ext)
+    media_file.delete()
+
+
+def delete_obj_s3(obj_name=None, file_type=None, file_ext=None):
+    s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                      aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+    print(f"key = {obj_name + file_ext}")
+    s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                     Key=obj_name + file_ext)
