@@ -21,8 +21,9 @@ class PhoneFilteredMyEventListSerializer(PhoneNumberValidatorMixin, serializers.
         image_urls = []
         if image_ids:
             for image_id in image_ids:
-                media_file = MediaFile.objects.get(file_id=image_id)
-                image_urls.append(media_file.file_url)
+                if image_id:
+                    media_file = MediaFile.objects.get(file_id=image_id)
+                    image_urls.append(media_file.file_url)
         if cover_pic_id:
             media_file = MediaFile.objects.get(file_id=cover_pic_id)
             ret['cover_image'] = media_file.file_url
