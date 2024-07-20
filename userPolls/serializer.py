@@ -59,6 +59,8 @@ class EmailValidatorMixin:
                 user = CustomUser.objects.get(email=data.lower())
         except ValidationError:
             raise serializers.ValidationError("Invalid email address")
+        except CustomUser.DoesNotExist:
+            return data
         return data
 
 
@@ -138,7 +140,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
-                       PhoneNumberValidatorMixin, CustomModelSerializer,
+                       PhoneNumberValidatorMixin,
                        serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
     class Meta:
@@ -207,7 +209,7 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
                 user.is_first_time_user = False
             user.last_login = timezone.now()
             user.save()
-            return user
+            return CustomUserSerializer(user).data
 
 
 

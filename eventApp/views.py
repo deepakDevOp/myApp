@@ -7,7 +7,6 @@ from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
 from eventApp.utils import delete_image_s3
-from userPolls.models import CustomUser
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
 
@@ -48,8 +47,7 @@ class EventAPIView(APIView):
                 return Response({"message": "Event found",
                                  "data": EventSerializer(event).data}, status=status.HTTP_200_OK)
             else:
-                return Response({"error": f"Event={serializer.data.get('eventid')} does not belong "
-                                          f"to user={request.user.username}"},
+                return Response({"error": "Given event id does not belong to this user"},
                                 status=status.HTTP_400_BAD_REQUEST)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
