@@ -58,12 +58,13 @@ class LoginAPIView(GenericAPIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            data = serializer.save()
             serializer_data = serializer.validated_data
             user = CustomUser.objects.get(phone_number=serializer_data.get("phone_number"))
             response_data = LoginResponseSerializer(user).data
             token_obj = AccessToken.objects.get(user_id=user.id)
             response_data['access_token'] = token_obj.token
+            data['access_token'] = token_obj.token
             if serializer_data.get("is_guest"):
                 message = "Guest user logged in Successfully."
             else:
@@ -72,7 +73,7 @@ class LoginAPIView(GenericAPIView):
                 else:
                     message = "User logged in successfully."
             return Response({'message': message,
-                             'data': response_data}, status=status.HTTP_200_OK)
+                             'data': data}, status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 
