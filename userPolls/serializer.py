@@ -182,6 +182,9 @@ class SignupSerializer(EmailValidatorMixin,
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required.")
             self.check_unique_email(data)
+        if not data.get("profile_pic"):
+            profile_pic = data.get("first_name").lower()[0] + "_initial"
+            data["profile_pic"] = profile_pic
         return data
 
     def check_unique_email(self, data):

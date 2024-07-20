@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from oauth2_provider.models import AbstractAccessToken
 
 
 class CustomUser(AbstractUser):
@@ -9,7 +8,7 @@ class CustomUser(AbstractUser):
 
     username = models.CharField(max_length=100, unique=True, blank=True)
     first_name = models.CharField(max_length=30, blank=False)
-    email = models.CharField(max_length=100, blank=True, unique=False, default="")
+    email = models.CharField(max_length=100, default="", blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     date_of_birth = models.CharField(max_length=50, blank=True, default="")
     address = models.CharField(max_length=255, blank=True)
