@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from .serializer import (SignupSerializer, LoginSerializer, CustomUserSerializer,
-                         LoginResponseSerializer, MediaFileSerializer, DeleteMediaFileSerializer)
+                         MediaFileSerializer, DeleteMediaFileSerializer)
 from userPolls.models import CustomUser
 from .utils import extract_error_message
 from django.shortcuts import render
@@ -60,10 +60,8 @@ class LoginAPIView(GenericAPIView):
         if serializer.is_valid():
             data = serializer.save()
             serializer_data = serializer.validated_data
-            user = CustomUser.objects.get(phone_number=serializer_data.get("phone_number"))
-            response_data = LoginResponseSerializer(user).data
+            user = CustomUser.objects.get(phone_number=data.get("phone_number"))
             token_obj = AccessToken.objects.get(user_id=user.id)
-            response_data['access_token'] = token_obj.token
             data['access_token'] = token_obj.token
             if serializer_data.get("is_guest"):
                 message = "Guest user logged in Successfully."
