@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import *
+from userPolls.models import CustomUser, MediaFile
 import string
 import boto3
 from django.conf import settings
@@ -54,14 +54,25 @@ class EmailValidatorMixin:
     def validate_email(self, data):
         try:
             validate_email(data.lower())
-            if self.__class__.__name__ in ("SignupSerializer",
-                                           "PasswordResetRequestSerializer"):
+            if self.__class__.__name__ in ("SignupSerializer"):
                 user = CustomUser.objects.get(email=data.lower())
         except ValidationError:
             raise serializers.ValidationError("Invalid email address")
         except CustomUser.DoesNotExist:
             return data
-        return data
+        else:
+            return data
+
+    # def check_unique_email(self, email):
+    #     users = []
+    #     users = CustomUser.objects.filter(email=data.lower())
+    #     count_users = len(users)
+    #     if not email and count_users > 0:
+    #         return True
+    #     elif email and
+
+
+
 
 
 class AuthenticationValidatorMixin:
@@ -139,7 +150,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return ret
 
 
-class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
+class SignupSerializer(EmailValidatorMixin,
                        PhoneNumberValidatorMixin,
                        serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
@@ -149,11 +160,13 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
         swagger_schema_fields = openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING, description='Username backend generated'),
                 'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='First name of the user'),
                 'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email address of the user'),
                 'last_name': openapi.Schema(type=openapi.TYPE_STRING, description='Last name of the user'),
                 'date_of_birth': openapi.Schema(type=openapi.TYPE_STRING, description='DOB of the user'),
                 'address': openapi.Schema(type=openapi.TYPE_STRING, description='Address of the user'),
+                'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description='Phone number of the user'),
                 'gender': openapi.Schema(type=openapi.TYPE_STRING, description='Gender of the user'),
                 'marital_status': openapi.Schema(type=openapi.TYPE_STRING, description='Marital status of the user'),
                 'profile_pic': openapi.Schema(type=openapi.TYPE_STRING, description='Pic of the user')
@@ -168,7 +181,23 @@ class SignupSerializer(EmailValidatorMixin, UsernameValidatorMixin,
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required.")
+            self.check_unique_email(data)
         return data
+
+    def check_unique_email(self, data):
+        username = data.get("username")
+        new_email = data.get("email")
+        user = CustomUser.objects.get(username=username)
+        current_email = user.email
+        if current_email == new_email:
+            return True
+        else:
+            try:
+                CustomUser.objects.get(email=new_email)
+            except CustomUser.DoesNotExist:
+                return  True
+            else:
+                raise serializers.ValidationError("User with this email already exists")
 
 
 
@@ -199,7 +228,7 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
             user.last_login = timezone.now()
             user = create_save_username(user)
             user.save()
-            return user
+            return CustomUserSerializer(instance=user).data
         else:
             self.authenticate_user(user, phone_number, uid)
             token_obj = update_access_token(user=user)
@@ -209,14 +238,7 @@ class LoginSerializer(PhoneNumberValidatorMixin, serializers.Serializer):
                 user.is_first_time_user = False
             user.last_login = timezone.now()
             user.save()
-            return CustomUserSerializer(user).data
-
-
-
-class LoginResponseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ['username', 'phone_number', 'profile_pic', 'first_name']
+            return CustomUserSerializer(instance=user).data
 
 
 class MediaFileSerializer(serializers.ModelSerializer):
