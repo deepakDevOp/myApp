@@ -27,4 +27,5 @@ class Event(models.Model):
 class GiftCardsList(models.Model):
     title = models.CharField(max_length=100)
     code = models.CharField(max_length=100)
+    image = models.CharField(max_length=100, default="")
 
