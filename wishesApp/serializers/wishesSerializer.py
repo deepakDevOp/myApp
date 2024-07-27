@@ -14,6 +14,13 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
     image_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
     video_urls = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
 
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        if request.user.username != event.username:
+            raise serializers.ValidationError("You are not authorized to add wishes for this event.")
+        return data
+
     def create(self, validated_data):
         request = self.context.get("request")
         event_id = validated_data.get('event_id')
@@ -59,6 +66,14 @@ class WishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
         model = Wishes
         fields = ['event_id', 'image_urls', 'video_urls', 'sender_name',
                   'sender_profile_image', 'sender_message', 'id']
+
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        receiver_number = event.receiver_phone_number
+        if request.user.username != event.username and request.user.phone_number != receiver_number:
+            raise serializers.ValidationError("You are not authorized to retrieve wishes for this event.")
+        return data
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

@@ -97,7 +97,7 @@ class TimelineAPIView(APIView):
 
 
 class PersonalWishesAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [CustomIsAuthenticated]
 
     def post(self, request):
         serializer = CreatePersonalWishesSerializer(data=request.data, context={'request': request})
@@ -118,7 +118,7 @@ class PersonalWishesAPIView(APIView):
                 event = Event.objects.get(eventid=request.GET.get("event_id"))
                 personal_wishes = PersonalWishes.objects.get(event=event)
             except Event.DoesNotExist:
-                return Response({"error": "Event does not exist."},
+                return Response({"error": "Event does not exist    ."},
                                 status=status.HTTP_404_NOT_FOUND)
             except PersonalWishes.DoesNotExist:
                 return Response({"error": "No personal wishes found for this event."},
