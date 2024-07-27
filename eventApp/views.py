@@ -5,6 +5,7 @@ from rest_framework import status
 from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
+from eventApp.serializers.giftCardSerializer import GiftCardsListSerializer
 from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
@@ -167,3 +168,13 @@ class ReceiverGetEvent(APIView):
         else:
             return Response({"error": "Event id or phone number is missing."},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetGiftsAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        gifts = GiftCardsList.objects.all()
+        serializer = GiftCardsListSerializer(gifts, many=True)
+        return Response({"message": "Gifts found",
+                         "data": serializer.data}, status=status.HTTP_200_OK)

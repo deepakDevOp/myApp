@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from .serializer import (SignupSerializer, LoginSerializer, CustomUserSerializer,
-                         MediaFileSerializer, DeleteMediaFileSerializer)
+                         MediaFileSerializer, DeleteMediaFileSerializer, VideoFileSerializer)
 from userPolls.models import CustomUser
 from .utils import extract_error_message
 from django.shortcuts import render
@@ -119,6 +119,19 @@ class MediaFileUploadView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "file uploaded successfully.",
+                             "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
+class VideoFileUploadView(APIView):
+    permission_classes = [CustomIsAuthenticated]
+
+    def post(self, request):
+        serializer = VideoFileSerializer(context={'request': request}, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Video uploaded successfully.",
                              "data": serializer.data}, status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
