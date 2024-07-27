@@ -54,7 +54,7 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
 
 
 class PersonalWishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
-    event_id = serializers.CharField(allow_blank=False)
+    event_id = serializers.CharField(allow_blank=False, required=True)
 
     class Meta:
         model = PersonalWishes

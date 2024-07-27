@@ -5,10 +5,11 @@ from rest_framework import status
 from eventApp.serializers.eventListSerializers import *
 from eventApp.serializers.myEventListSerializer import *
 from eventApp.serializers.eventSerializer import *
-from eventApp.serializers.giftCardSerializer import GiftCardsListSerializer
 from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
+from eventApp.serializers.giftCardSerializer import (GiftsSerializer, CreateGiftsSerializer,
+                                                     GiftCardsListSerializer)
 
 
 class AddEventTypeAPIView(GenericAPIView):
@@ -178,3 +179,31 @@ class GetGiftsAPIView(APIView):
         serializer = GiftCardsListSerializer(gifts, many=True)
         return Response({"message": "Gifts found",
                          "data": serializer.data}, status=status.HTTP_200_OK)
+
+
+class GiftsAPIView(APIView):
+    permission_classes = [CustomIsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateGiftsSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            gifts = serializer.save()
+            return Response({"message": "Gifts created successfully.",
+                             "data": gifts},  status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        serializer = GiftsSerializer(data=request.GET, context={'request': request})
+        if serializer.is_valid():
+            event = Event.objects.get(eventid=request.GET.get("event_id"))
+            try:
+                gifts = Gifts.objects.filter(event=event)
+            except Gifts.DoesNotExist:
+                return Response({"error": "No gifts found for this event."},
+                                status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Gifts found successfully.",
+                             "data": GiftsSerializer(instance=gifts, many=True).data},
+                            status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)

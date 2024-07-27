@@ -9,5 +9,6 @@ urlpatterns = [
     path('get_events_list/', MyEventListAPIView.as_view(), name='MyEventListAPIView'),
     path('get_events_list_receiver/', ReceiverGetEventList.as_view(), name='ReceiverGetEventList'),
     path('get_event_receiver/', ReceiverGetEvent.as_view(), name='ReceiverGetEvent'),
-    path('gifts/', GetGiftsAPIView.as_view(), name='GetGiftsAPIView')
+    path('gifts_list/', GetGiftsAPIView.as_view(), name='GetGiftsAPIView'),
+    path('gifts/', GiftsAPIView.as_view(), name='GiftsAPIView')
 ]

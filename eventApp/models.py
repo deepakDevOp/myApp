@@ -29,3 +29,14 @@ class GiftCardsList(models.Model):
     code = models.CharField(max_length=100)
     image = models.CharField(max_length=100, default="")
 
+
+class Gifts(models.Model):
+    event = models.ForeignKey(Event, to_field='eventid', on_delete=models.CASCADE,
+                              related_name='gifts')
+    gift_code = models.CharField(max_length=100, blank=True, default="")
+    gift_title = models.CharField(max_length=100, blank=True, default="")
+    sender_name = models.CharField(max_length=100, blank=True, default="")
+    card_id = models.CharField(max_length=100, blank=True, default="")
+    card_pin = models.CharField(max_length=100, blank=True, default="")
+    gift_images = models.JSONField(default=list)
+
