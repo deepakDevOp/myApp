@@ -1,10 +1,8 @@
 from rest_framework import serializers
 from eventApp.models import Event
-from wishesApp.models import Wishes, Timeline
-from wishesApp.validators import EventValidatorMixin
-from wishesApp.utils import upload_object_to_s3
+from wishesApp.models import Timeline
 from django.db import IntegrityError
-from wishesApp.utils import generate_timestamp, delete_object_s3
+from wishesApp.utils import generate_timestamp
 from userPolls.models import MediaFile
 
 

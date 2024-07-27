@@ -8,7 +8,6 @@ from eventApp.serializers.eventSerializer import *
 from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
-from eventApp.utils import perform_delete
 
 
 class AddEventTypeAPIView(GenericAPIView):

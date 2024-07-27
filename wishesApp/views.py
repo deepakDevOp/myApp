@@ -2,13 +2,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from eventApp.serializers.eventSerializer import *
-from userPolls.authentication import CustomIsAuthenticated
 from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, WishesSerializer,
                                                     UpdateWishesSerializer)
 from wishesApp.serializers.timelineSerializer import CreateTimelineSerializer, GetTimelineSerializer
-from wishesApp.models import Wishes, Timeline
-from userPolls.utils import extract_error_message
+from wishesApp.models import Wishes, Timeline, PersonalWishes
 from rest_framework.exceptions import ValidationError
+from userPolls.authentication import CustomIsAuthenticated
+from userPolls.utils import extract_error_message
+from rest_framework.permissions import AllowAny
+from wishesApp.serializers.personalWishesSerializer import (CreatePersonalWishesSerializer,
+                                                            PersonalWishesSerializer)
 
 
 class WishesAPIView(APIView):
@@ -88,6 +91,40 @@ class TimelineAPIView(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
             return Response({"message": "Timeline found successfully.",
                              "data": GetTimelineSerializer(instance=timeline).data},
+                            status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
+class PersonalWishesAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = CreatePersonalWishesSerializer(data=request.data, context={'request': request})
+        try:
+            if serializer.is_valid(raise_exception=True):
+                data = serializer.save()
+                return Response({"message": "Personal Wishes created successfully.",
+                                 "data": data}, status=status.HTTP_200_OK)
+            return Response({"error": extract_error_message(serializer.errors)},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        serializer = PersonalWishesSerializer(data=request.GET, context={'request': request})
+        if serializer.is_valid():
+            try:
+                event = Event.objects.get(eventid=request.GET.get("event_id"))
+                personal_wishes = PersonalWishes.objects.get(event=event)
+            except Event.DoesNotExist:
+                return Response({"error": "Event does not exist."},
+                                status=status.HTTP_404_NOT_FOUND)
+            except PersonalWishes.DoesNotExist:
+                return Response({"error": "No personal wishes found for this event."},
+                                status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Personal Wishes found successfully.",
+                             "data": PersonalWishesSerializer(instance=personal_wishes).data},
                             status=status.HTTP_200_OK)
         return Response({"error": serializer.errors},
                         status=status.HTTP_400_BAD_REQUEST)
