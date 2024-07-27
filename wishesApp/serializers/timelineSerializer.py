@@ -4,12 +4,20 @@ from wishesApp.models import Timeline
 from django.db import IntegrityError
 from wishesApp.utils import generate_timestamp
 from userPolls.models import MediaFile
+from wishesApp.validators import EventValidatorMixin
 
 
-class CreateTimelineSerializer(serializers.Serializer):
+class CreateTimelineSerializer(EventValidatorMixin, serializers.Serializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
     images = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
     videos = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        if request.user.username != event.username:
+            raise serializers.ValidationError("You are not authorized to add timeline for this event.")
+        return data
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -41,12 +49,20 @@ class CreateTimelineSerializer(serializers.Serializer):
         return GetTimelineSerializer(timeline).data
 
 
-class GetTimelineSerializer(serializers.ModelSerializer):
+class GetTimelineSerializer(EventValidatorMixin, serializers.ModelSerializer):
     event_id = serializers.CharField(allow_blank=False)
 
     class Meta:
         model = Timeline
         fields = ["event_id", "id", "images", "videos"]
+
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        receiver_number = event.receiver_phone_number
+        if request.user.username != event.username and request.user.phone_number != receiver_number:
+            raise serializers.ValidationError("You are not authorized to retrieve timeline for this event.")
+        return data
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

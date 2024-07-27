@@ -1,16 +1,23 @@
 from rest_framework import serializers
 from eventApp.models import Event
-from wishesApp.models import Wishes
 from wishesApp.utils import generate_timestamp
 from userPolls.models import MediaFile
 from wishesApp.models import PersonalWishes
 from django.db import IntegrityError
+from wishesApp.validators import EventValidatorMixin
 
 
-class CreatePersonalWishesSerializer(serializers.Serializer):
+class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
     personal_wishes = serializers.ListField(child=serializers.CharField(allow_blank=False),
                                             required=True, allow_empty=False)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        if request.user.username != event.username:
+            raise serializers.ValidationError("You are not authorized to add personal wishes for this event.")
+        return data
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -46,12 +53,20 @@ class CreatePersonalWishesSerializer(serializers.Serializer):
         return PersonalWishesSerializer(personal_wishes).data
 
 
-class PersonalWishesSerializer(serializers.ModelSerializer):
+class PersonalWishesSerializer(EventValidatorMixin, serializers.ModelSerializer):
     event_id = serializers.CharField(allow_blank=False)
 
     class Meta:
         model = PersonalWishes
         exclude = ("event",)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        event = Event.objects.get(eventid=data.get("event_id"))
+        receiver_number = event.receiver_phone_number
+        if request.user.username != event.username and request.user.phone_number != receiver_number:
+            raise serializers.ValidationError("You are not authorized to retrieve personal wishes for this event.")
+        return data
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
