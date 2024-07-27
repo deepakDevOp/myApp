@@ -22,3 +22,9 @@ class Event(models.Model):
     cover_image = models.CharField(max_length=500, blank=True, default="")
     splash_background_image = models.CharField(max_length=500, blank=True, default="")
     splash_display_image = models.CharField(max_length=500, blank=True, default="")
+
+
+class GiftCardsList(models.Model):
+    title = models.CharField(max_length=100)
+    code = models.CharField(max_length=100)
+

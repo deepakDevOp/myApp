@@ -277,6 +277,39 @@ class MediaFileSerializer(serializers.ModelSerializer):
         )
 
 
+class VideoFileSerializer(serializers.ModelSerializer):
+    file = serializers.FileField(required=True, write_only=True)
+
+    class Meta:
+        model = MediaFile
+        fields = ['file_url', 'file_id', 'upload_time', 'uploaded_by',
+                  'file_type', 'file_ext', 'file']
+        extra_kwargs = {'id': {'write_only': True}}
+
+
+    def upload_video_to_s3(self, video_data, file_name):
+        key = f"{file_name}.mp4"
+        s3 = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3.put_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, Body=video_data)
+        video_url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}'
+        return video_url
+
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        file = request.FILES.get('file')
+        file_id = generate_timestamp()
+        file_url = self.upload_video_to_s3(video_data=file, file_name=file_id)
+        return MediaFile.objects.create(
+            file_url=file_url,
+            uploaded_by=request.user.username,
+            file_id=file_id,
+            file_ext=".mp4",
+            file_type="video",
+        )
+
+
 class DeleteMediaFileSerializer(serializers.ModelSerializer):
 
     class Meta:
