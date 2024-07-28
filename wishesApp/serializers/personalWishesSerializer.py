@@ -9,7 +9,7 @@ from wishesApp.validators import EventValidatorMixin
 
 class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
-    personal_wishes = serializers.ListField(child=serializers.CharField(allow_blank=False),
+    wishes = serializers.ListField(child=serializers.CharField(allow_blank=False),
                                             required=True, allow_empty=False)
 
     def validate(self, data):
