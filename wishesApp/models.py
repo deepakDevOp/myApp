@@ -24,3 +24,4 @@ class PersonalWishes(models.Model):
     messages = models.JSONField(default=list)
     images = models.JSONField(default=list)  # List of image URLs
     videos = models.JSONField(default=list)  # List of video URLs
+    cover_image = models.CharField(max_length=100, default="")
