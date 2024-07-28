@@ -5,6 +5,45 @@ from wishesApp.validators import EventValidatorMixin
 from wishesApp.utils import upload_object_to_s3
 from wishesApp.utils import generate_timestamp, delete_object_s3
 from userPolls.models import MediaFile
+from eventApp.utils import perform_delete
+
+
+class DeleteWishesSerializer(serializers.Serializer):
+    wish_id = serializers.IntegerField(required=True)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        wish_id = data.get("wish_id")
+        try:
+            wish = Wishes.objects.get(id=wish_id)
+        except Wishes.DoesNotExist:
+            raise serializers.ValidationError("Wish id does not exist")
+        else:
+            event_id = wish.event_id
+            event = Event.objects.get(eventid=event_id)
+            created_by = event.username
+            if request.user.username != created_by:
+                raise serializers.ValidationError("Current user is not authorized to delete this wish")
+            return data
+
+    def delete(self):
+        request = self.context.get("request")
+        wish = Wishes.objects.get(id=request.GET.get("wish_id"))
+        file_ids = self.collectFileIds(instance=wish)
+        for file_id in file_ids:
+            if not file_id:
+                continue
+            perform_delete(file_id)
+        wish.delete()
+        return
+
+    @staticmethod
+    def collectFileIds(instance=None):
+        fileIds = set()
+        fileIds.update(instance.image_urls)
+        fileIds.update(instance.video_urls)
+        fileIds.add(instance.sender_profile_image)
+        return fileIds
 
 
 class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):

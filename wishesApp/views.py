@@ -3,13 +3,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from eventApp.serializers.eventSerializer import *
 from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, WishesSerializer,
-                                                    UpdateWishesSerializer)
+                                                    UpdateWishesSerializer, DeleteWishesSerializer)
 from wishesApp.serializers.timelineSerializer import CreateTimelineSerializer, GetTimelineSerializer
 from wishesApp.models import Wishes, Timeline, PersonalWishes
 from rest_framework.exceptions import ValidationError
 from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
-from rest_framework.permissions import AllowAny
 from wishesApp.serializers.personalWishesSerializer import (CreatePersonalWishesSerializer,
                                                             PersonalWishesSerializer)
 
@@ -61,6 +60,14 @@ class WishesAPIView(APIView):
             serializer.save()
             return Response({"message": "Wishes updated successfully."},
                             status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        serializer = DeleteWishesSerializer(data=self.request.GET, context={'request': request})
+        if serializer.is_valid():
+            serializer.delete()
+            return Response({"message": "Wish deleted successfully"}, status=status.HTTP_200_OK)
         return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 
