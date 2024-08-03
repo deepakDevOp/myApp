@@ -56,6 +56,7 @@ class CreateGiftsSerializer(EventValidatorMixin, serializers.Serializer):
 
 class GiftsSerializer(EventValidatorMixin, serializers.ModelSerializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
+
     class Meta:
         model = Gifts
         exclude = ("event",)
@@ -70,11 +71,11 @@ class GiftsSerializer(EventValidatorMixin, serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        image_ids = ret.get('images', [])
+        image_ids = ret.get('gift_images', [])
         image_urls = []
         if image_ids:
             for image_id in image_ids:
                 media_file = MediaFile.objects.get(file_id=image_id)
                 image_urls.append(media_file.file_url)
-            ret['images'] = image_urls
+            ret['gift_images'] = image_urls
         return ret
