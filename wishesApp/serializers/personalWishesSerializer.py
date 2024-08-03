@@ -11,7 +11,7 @@ from wishesApp.validators import EventValidatorMixin
 class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer):
     event_id = serializers.CharField(allow_blank=False, required=True)
     wishes = serializers.ListField(child=serializers.CharField(allow_blank=False),
-                                            required=True, allow_empty=False)
+                                   required=True, allow_empty=False)
 
     def validate(self, data):
         request = self.context.get("request")
@@ -23,7 +23,7 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
     def create(self, validated_data):
         request = self.context.get("request")
         event_id = validated_data.get('event_id')
-        messages = validated_data.get('personal_wishes')
+        messages = validated_data.get('wishes', [])
         images_ids = request.data.get("images", [])
         videos_urls = request.data.get("videos", [])
         updated_videos_data = []
