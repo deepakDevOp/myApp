@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from eventApp.models import Event
+from eventApp.utils import perform_delete
 from wishesApp.models import Timeline
 from django.db import IntegrityError
 from wishesApp.utils import generate_timestamp
@@ -81,3 +82,40 @@ class GetTimelineSerializer(EventValidatorMixin, serializers.ModelSerializer):
         ret['images'] = image_urls
         ret['videos'] = video_urls
         return ret
+
+
+class DeleteTimelineSerializer(EventValidatorMixin, serializers.Serializer):
+    timeline_id = serializers.IntegerField(required=True)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        timeline_id = data.get("timeline_id")
+        try:
+            timeline = Timeline.objects.get(id=timeline_id)
+        except Timeline.DoesNotExist:
+            raise serializers.ValidationError("Timeline does not exist")
+        else:
+            event_id = Timeline.event_id
+            event = Event.objects.get(eventid=event_id)
+            created_by = event.username
+            if request.user.username != created_by:
+                raise serializers.ValidationError("Current user is not authorized to delete this timeline")
+            return data
+
+    def delete(self):
+        request = self.context.get("request")
+        timeline = Timeline.objects.get(id=request.GET.get("timeline_id"))
+        file_ids = self.collectFileIds(instance=timeline)
+        for file_id in file_ids:
+            if not file_id:
+                continue
+            perform_delete(file_id)
+        timeline.delete()
+        return
+
+    @staticmethod
+    def collectFileIds(instance=None):
+        fileIds = set()
+        fileIds.update(instance.images)
+        fileIds.update(instance.videos)
+        return fileIds

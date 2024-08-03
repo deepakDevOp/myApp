@@ -4,13 +4,14 @@ from rest_framework import status
 from eventApp.serializers.eventSerializer import *
 from wishesApp.serializers.wishesSerializer import (CreateWishesSerializer, WishesSerializer,
                                                     UpdateWishesSerializer, DeleteWishesSerializer)
-from wishesApp.serializers.timelineSerializer import CreateTimelineSerializer, GetTimelineSerializer
+from wishesApp.serializers.timelineSerializer import (CreateTimelineSerializer, GetTimelineSerializer,
+                                                      DeleteTimelineSerializer)
 from wishesApp.models import Wishes, Timeline, PersonalWishes
 from rest_framework.exceptions import ValidationError
 from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
 from wishesApp.serializers.personalWishesSerializer import (CreatePersonalWishesSerializer,
-                                                            PersonalWishesSerializer)
+                                                            PersonalWishesSerializer, DeletePersonalWishesSerializer)
 
 
 class WishesAPIView(APIView):
@@ -102,6 +103,14 @@ class TimelineAPIView(APIView):
         return Response({"error": serializer.errors},
                         status=status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request):
+        serializer = DeleteTimelineSerializer(data=self.request.GET, context={'request': request})
+        if serializer.is_valid():
+            serializer.delete()
+            return Response({"message": "Timeline deleted successfully"}, status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
+                        status=status.HTTP_400_BAD_REQUEST)
+
 
 class PersonalWishesAPIView(APIView):
     permission_classes = [CustomIsAuthenticated]
@@ -134,4 +143,13 @@ class PersonalWishesAPIView(APIView):
                              "data": PersonalWishesSerializer(instance=personal_wishes).data},
                             status=status.HTTP_200_OK)
         return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        serializer = DeletePersonalWishesSerializer(data=self.request.GET, context={'request': request})
+        if serializer.is_valid():
+            serializer.delete()
+            return Response({"message": "Personal wishes deleted successfully"},
+                            status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
