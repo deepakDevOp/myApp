@@ -9,7 +9,7 @@ from userPolls.authentication import CustomIsAuthenticated
 from userPolls.utils import extract_error_message
 from rest_framework.generics import GenericAPIView
 from eventApp.serializers.giftCardSerializer import (GiftsSerializer, CreateGiftsSerializer,
-                                                     GiftCardsListSerializer)
+                                                     GiftCardsListSerializer, DeleteGiftsSerializer)
 
 
 class AddEventTypeAPIView(GenericAPIView):
@@ -206,4 +206,13 @@ class GiftsAPIView(APIView):
                              "data": GiftsSerializer(instance=gifts, many=True).data},
                             status=status.HTTP_200_OK)
         return Response({"error": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        serializer = DeleteGiftsSerializer(data=self.request.GET, context={'request': request})
+        if serializer.is_valid():
+            serializer.delete()
+            return Response({"message": "Gift deleted successfully"},
+                            status=status.HTTP_200_OK)
+        return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)

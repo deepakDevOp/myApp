@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from eventApp.models import Event
+from eventApp.utils import perform_delete
 from wishesApp.utils import generate_timestamp
 from userPolls.models import MediaFile
 from wishesApp.models import PersonalWishes
@@ -85,3 +86,41 @@ class PersonalWishesSerializer(EventValidatorMixin, serializers.ModelSerializer)
                 video_urls.append(media_file.file_url)
             ret['videos'] = video_urls
         return ret
+
+
+class DeletePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer):
+    personal_id = serializers.IntegerField(required=True)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        personal_id = data.get("personal_id")
+        try:
+            personal_wishes = PersonalWishes.objects.get(id=personal_id)
+        except PersonalWishes.DoesNotExist:
+            raise serializers.ValidationError("Personal Wishes does not exist")
+        else:
+            event_id = PersonalWishes.event_id
+            event = Event.objects.get(eventid=event_id)
+            created_by = event.username
+            if request.user.username != created_by:
+                raise serializers.ValidationError("Current user is not authorized to delete the PersonalWishes")
+            return data
+
+    def delete(self):
+        request = self.context.get("request")
+        personal_wishes = PersonalWishes.objects.get(id=request.GET.get("personal_id"))
+        file_ids = self.collectFileIds(instance=personal_wishes)
+        for file_id in file_ids:
+            if not file_id:
+                continue
+            perform_delete(file_id)
+        personal_wishes.delete()
+        return
+
+    @staticmethod
+    def collectFileIds(instance=None):
+        fileIds = set()
+        fileIds.update(instance.images)
+        fileIds.update(instance.videos)
+        fileIds.add(instance.cover_image)
+        return fileIds

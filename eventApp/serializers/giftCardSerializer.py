@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from eventApp.models import GiftCardsList
+from eventApp.utils import perform_delete
 from userPolls.models import MediaFile
 from wishesApp.validators import EventValidatorMixin
 from eventApp.models import Event, Gifts
@@ -41,6 +42,8 @@ class CreateGiftsSerializer(EventValidatorMixin, serializers.Serializer):
         gift_title = request.data.get("gift_title")
         sender_name = request.data.get("sender_name")
         gift_images = request.data.get("gift_images", [])
+        card_id = request.data.get("card_id", "")
+        card_pin = request.data.get|("card_pin", "")
         # Create the Personal Wishes instance
         event = Event.objects.get(eventid=event_id)
         gifts = Gifts.objects.create(
@@ -48,7 +51,9 @@ class CreateGiftsSerializer(EventValidatorMixin, serializers.Serializer):
                 gift_code=gift_code,
                 gift_title=gift_title,
                 sender_name=sender_name,
-                gift_images=gift_images
+                gift_images=gift_images,
+                card_id=card_id,
+                card_pin=card_pin
         )
 
         return GiftsSerializer(gifts).data
@@ -79,3 +84,39 @@ class GiftsSerializer(EventValidatorMixin, serializers.ModelSerializer):
                 image_urls.append(media_file.file_url)
             ret['gift_images'] = image_urls
         return ret
+
+
+class DeleteGiftsSerializer(EventValidatorMixin, serializers.Serializer):
+    gift_id = serializers.IntegerField(required=True)
+
+    def validate(self, data):
+        request = self.context.get("request")
+        gift_id = data.get("gift_id")
+        try:
+            gifts = Gifts.objects.get(id=gift_id)
+        except Gifts.DoesNotExist:
+            raise serializers.ValidationError("Gifts do not exist")
+        else:
+            event_id = Gifts.event_id
+            event = Event.objects.get(eventid=event_id)
+            created_by = event.username
+            if request.user.username != created_by:
+                raise serializers.ValidationError("Current user is not authorized to delete this gift")
+            return data
+
+    def delete(self):
+        request = self.context.get("request")
+        gift = Gifts.objects.get(id=request.GET.get("gift_id"))
+        file_ids = self.collectFileIds(instance=gift)
+        for file_id in file_ids:
+            if not file_id:
+                continue
+            perform_delete(file_id)
+        gift.delete()
+        return
+
+    @staticmethod
+    def collectFileIds(instance=None):
+        fileIds = set()
+        fileIds.update(instance.gift_images)
+        return fileIds
