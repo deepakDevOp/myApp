@@ -12,6 +12,7 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
     event_id = serializers.CharField(allow_blank=False, required=True)
     wishes = serializers.ListField(child=serializers.CharField(allow_blank=False),
                                    required=True, allow_empty=False)
+    cover_image = serializers.CharField(required=True)
 
     def validate(self, data):
         request = self.context.get("request")
@@ -26,6 +27,7 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
         messages = validated_data.get('wishes', [])
         images_ids = request.data.get("images", [])
         videos_urls = request.data.get("videos", [])
+        cover_image = request.data.get("cover_image", "")
         updated_videos_data = []
         if videos_urls:
             for video_url in videos_urls:
@@ -46,7 +48,8 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
                     event=event,
                     images=images_ids,
                     videos=updated_videos_data,
-                    messages=messages
+                    messages=messages,
+                    cover_image=cover_image
             )
         except IntegrityError:
             raise serializers.ValidationError("Personal Wishes already exist for this event.")
@@ -73,6 +76,7 @@ class PersonalWishesSerializer(EventValidatorMixin, serializers.ModelSerializer)
         ret = super().to_representation(instance)
         image_ids = ret.get('images', [])
         video_ids = ret.get('videos', [])
+        cover_id = ret.get('cover_image', "")
         image_urls = []
         video_urls = []
         if image_ids:
@@ -85,6 +89,9 @@ class PersonalWishesSerializer(EventValidatorMixin, serializers.ModelSerializer)
                 media_file = MediaFile.objects.get(file_id=video_id)
                 video_urls.append(media_file.file_url)
             ret['videos'] = video_urls
+        if cover_id:
+            media_file = MediaFile.objects.get(file_id=cover_id)
+            ret['cover_image'] = media_file.file_url
         return ret
 
 
