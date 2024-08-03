@@ -23,7 +23,7 @@ class WishesAPIView(APIView):
             wishes = serializer.save()
             return Response({"message": "Wishes created successfully.",
                              "data": wishes},  status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors},
+        return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
@@ -38,7 +38,7 @@ class WishesAPIView(APIView):
             return Response({"message": "Wishes found successfully.",
                              "data": WishesSerializer(instance=wishes, many=True).data},
                             status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors},
+        return Response({"error": extract_error_message(serializer.errors)},
                         status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
@@ -86,7 +86,7 @@ class TimelineAPIView(APIView):
             return Response({"error": extract_error_message(serializer.errors)},
                             status=status.HTTP_400_BAD_REQUEST)
         except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
         serializer = GetTimelineSerializer(data=request.GET, context={'request': request})
@@ -125,7 +125,7 @@ class PersonalWishesAPIView(APIView):
             return Response({"error": extract_error_message(serializer.errors)},
                             status=status.HTTP_400_BAD_REQUEST)
         except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
         serializer = PersonalWishesSerializer(data=request.GET, context={'request': request})
