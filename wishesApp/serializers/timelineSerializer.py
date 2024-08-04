@@ -21,29 +21,16 @@ class CreateTimelineSerializer(EventValidatorMixin, serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        request = self.context.get("request")
         image_ids = self.validated_data.get("images", [])
-        video_urls = self.validated_data.get("videos", [])
+        video_ids = self.validated_data.get("videos", [])
         event_id = validated_data.get('event_id')
-        updated_videos_data = []
-        for video_url in video_urls:
-            video_id = generate_timestamp()
-            updated_videos_data.append(video_id)
-            file_ext = video_url.split(".")
-            MediaFile.objects.create(
-                file_id=video_id,
-                file_url=video_url,
-                uploaded_by=request.user.username,
-                file_type="video",
-                file_ext=f".{file_ext[-1]}"
-            )
         try:
             # Create the Wishes instance
             event = Event.objects.get(eventid=event_id)
             timeline = Timeline.objects.create(
                 event=event,
                 images=image_ids,
-                videos=updated_videos_data
+                videos=video_ids
             )
         except IntegrityError:
             raise serializers.ValidationError("Timeline already exists for this event.")
