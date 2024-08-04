@@ -26,28 +26,15 @@ class CreatePersonalWishesSerializer(EventValidatorMixin, serializers.Serializer
         event_id = validated_data.get('event_id')
         messages = validated_data.get('wishes', [])
         images_ids = request.data.get("images", [])
-        videos_urls = request.data.get("videos", [])
+        videos_ids = request.data.get("videos", [])
         cover_image = request.data.get("cover_image", "")
-        updated_videos_data = []
-        if videos_urls:
-            for video_url in videos_urls:
-                video_id = generate_timestamp()
-                updated_videos_data.append(video_id)
-                file_ext = video_url.split(".")
-                MediaFile.objects.create(
-                    file_id=video_id,
-                    file_url=video_url,
-                    uploaded_by=request.user.username,
-                    file_type="video",
-                    file_ext=f".{file_ext[-1]}"
-                )
         # Create the Personal Wishes instance
         event = Event.objects.get(eventid=event_id)
         try:
             personal_wishes = PersonalWishes.objects.create(
                     event=event,
                     images=images_ids,
-                    videos=updated_videos_data,
+                    videos=videos_ids,
                     messages=messages,
                     cover_image=cover_image
             )

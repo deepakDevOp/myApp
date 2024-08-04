@@ -69,20 +69,7 @@ class CreateWishesSerializer(EventValidatorMixin, serializers.Serializer):
         sender_message = request.data.get('sender_message')
         if not sender_profile_image_id:
             sender_profile_image_id = sender_name.lower()[0] + "_initial"
-
-        updated_videos_data = []
-        for video_url in videos:
-            video_id = generate_timestamp()
-            updated_videos_data.append(video_id)
-            file_ext = video_url.split(".")
-            MediaFile.objects.create(
-                file_id=video_id,
-                file_url=video_url,
-                uploaded_by=request.user.username,
-                file_type="video",
-                file_ext=f".{file_ext[-1]}"
-            )
-        videos = updated_videos_data
+        videos = validated_data.get("video_urls", [])
         images = validated_data.get("image_urls", [])
         # Create the Wishes instance
         event = Event.objects.get(eventid=event_id)
