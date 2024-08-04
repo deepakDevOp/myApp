@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-82m1ej6)=l6i@0v^%4wr-n2d$0go*b+5z#bk(djv4z4lsbq2hw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["heartehomies.com", "www.heartehomies.com", "43.205.171.25", "http://heartehomies.com", "127.0.0.1"]
 
@@ -58,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.custom500middleware.Custom500Middleware'
 ]
 
 ROOT_URLCONF = 'myTestingApp.urls'
